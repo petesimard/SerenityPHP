@@ -51,7 +51,7 @@ namespace Serenity;
         </div>
         <div id="content">
         <?
-        $pageNotice = sp::app()->getCurrentPage()->getPageNotice();
+        $pageNotice = sp::app()->getCurrentPage()->getNotice();
 
         if($pageNotice['message'] != "")
             echo sp::app()->getSnippet($pageNotice['type'], array("message" => $pageNotice['message']));

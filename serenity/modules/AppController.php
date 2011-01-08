@@ -333,7 +333,7 @@ class SerenityAppController
      */
     public function redirectToError($errorMessage)
     {
-		$this->getCurrentPage()->setPageNotice('error', $errorMessage);
+		$this->getCurrentPage()->setNotice('error', $errorMessage);
     	
 		$this->route = sp::$router->getErrorPage();
         $this->redirect($this->route->page, $this->route->action);

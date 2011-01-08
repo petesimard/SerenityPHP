@@ -26,7 +26,7 @@ class UserModel extends SerenityModel
         $field->type = "varchar";
         $field->length = "32";
         $field->isPassword = true;
-        $field->validator = array("minLen" => 3, "maxLen" => 16, "required" => true, "friendlyName" => "Password");
+        $field->validator = array("required" => true, "friendlyName" => "Password");
 
         $field = $this->addField("password_confirm");
         $field->type = "form";

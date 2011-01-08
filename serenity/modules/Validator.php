@@ -25,10 +25,6 @@ class ParamDefinition
     public $errorMessage = null;
     public $matchField = null;
     public $defaultValue = null;
-
-    public $model;
-    public $field;
-
     /**
      * Parses the array of strings passed and creates a ParamDefinition
      * @param array $paramArray
@@ -40,7 +36,7 @@ class ParamDefinition
     {
         $this->model = $referenceModel;
         $this->field = $referenceField;
-
+        
         foreach($paramArray as $var=>$value)
         {
             switch($var)
@@ -123,33 +119,38 @@ class ParameterValidator
      * @throws SerenityException
      * @return string
      */
-    public function validate($paramValue, $paramDefinition)
+    public function validate($paramValue, $paramDefinition, $model = null)
     {
         if($paramDefinition == null)
             return;
 
+        $isUpdate = false;
+        if($model && $model->getPrimaryKeyValue() != "")
+        	$isUpdate = true;
+                    
         $paramName = $paramDefinition->getFriendlyName();
 
         // Required field
         if($paramDefinition->required == true)
         {
-        	
-            if($paramValue == "" || $paramValue == null)
-            {
-                if($paramDefinition->errorMessage === null)
-                    $errorMessage = $paramName . " is a required field.";
-                else
-                    $errorMessage = $paramDefinition->errorMessage;
-
-                return $errorMessage;
-            }
-
+        	if(!$isUpdate || ($isUpdate && $paramDefinition->type != "form"))
+        	{	
+	            if($paramValue == "" || $paramValue == null)
+	            {
+	                if($paramDefinition->errorMessage === null)
+	                    $errorMessage = $paramName . " is a required field.";
+	                else
+	                    $errorMessage = $paramDefinition->errorMessage;
+	
+	                return $errorMessage;
+	            }
+        	}
         }
 
         // Compare to another field
         if($paramDefinition->matchField != null)
         {
-            $matchFieldValue = $paramDefinition->matchField->value;
+            $matchFieldValue = $paramDefinition->matchField->getValue();
             if($matchFieldValue != $paramValue)
             {
                 if($paramDefinition->errorMessage === null)
@@ -164,11 +165,19 @@ class ParameterValidator
         // Check for unique
         if($paramDefinition->unique == true)
         {
-            $referenceModel = $paramDefinition->model;
+            $referenceModel = $model;
             if($referenceModel == null)
                 throw new SerenityException("Unable to set field '" . $paramName . "' to unique without reference model.");
 
-            $existingModel = $referenceModel->query($paramDefinition->name . "='" . mysql_escape_string($paramValue) . "'")->fetchOne();
+            $query = $referenceModel->query($paramDefinition->name . "='" . mysql_escape_string($paramValue) . "'");
+            
+            if($isUpdate)
+            {
+            	$query->addWhere($referenceModel->getPrimaryKey() . "<>'" . $referenceModel->getPrimaryKeyValue() . "'");
+            }
+           	
+            $existingModel = $query->fetchOne();
+            
             if($existingModel != null)
             {
                 if($paramDefinition->errorMessage === null)

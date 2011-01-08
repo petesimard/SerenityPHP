@@ -11,8 +11,17 @@ class AdminPage extends SerenityPage
     }
     
     function editUser()
-    {    	
-    	$this->user = UserModel::query($this->getParam('id'))->fetchOne();
+    {   
+    	if($this->isFormValid())
+    	{
+    		$this->user = $this->getForm();
+    		$this->user->save();
+    		$this->setNotice('success', 'User information saved');
+    	}
+    	else
+    	{    	
+    		$this->user = UserModel::query($this->getParam('user_id'))->fetchOne();
+    	}
     	
     	$this->errorIf(!$this->user, "Invalid ID passed");    	
     }    

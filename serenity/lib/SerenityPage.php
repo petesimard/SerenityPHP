@@ -80,9 +80,7 @@ abstract class SerenityPage
             {
                 $model = sp::app()->getModel($paramValue);
                 if($model == null)
-                {
                     throw new SerenityException("Invalid model passed: " . $paramName);
-                }
 
                 $className = get_class($model);
                 $formModel = clone $model;
@@ -94,6 +92,23 @@ abstract class SerenityPage
             return;
             
         sp::app()->addLogMessage("Bound form to page '" . get_class($formModel) . "'");
+        
+        // Check for a primary key to see if it's an update or an insert
+        $primaryKey = $formModel->getPrimaryKey();
+        $primaryKeyParam = $this->params[$formModel->tableName . "_" . $primaryKey];
+
+        if($primaryKeyParam != null)
+        {
+        	$formModel = $formModel->query($primaryKeyParam)->fetchOne();
+        	if($formModel == null)
+        	{
+	        	$this->isFormValid = false;
+	        	$this->setNotice('error', "Invalid record");
+	        	return;
+        	}
+        	
+        	$formModel->undirtyFields();
+        }
 
         foreach($this->params as $paramName => $paramValue)
         {
@@ -125,7 +140,7 @@ abstract class SerenityPage
                 }
             }
 
-            $this->setPageNotice('error', $errorMsg);
+            $this->setNotice('error', $errorMsg);
         }
     }
 
@@ -138,7 +153,7 @@ abstract class SerenityPage
 
         foreach($this->formModel->getFields() as $field)
         {
-            $errorMessage = sp::validator()->validate($field->getValue(), $field->paramDefinition);
+            $errorMessage = sp::validator()->validate($field->getValue(), $field->paramDefinition, $this->formModel);
             if($errorMessage != "")
             {
                 $field->formError = $errorMessage;
@@ -165,7 +180,7 @@ abstract class SerenityPage
     				if(!in_array($field->name, $limitFields))
     				{
     					$this->isFormValid = false;
-    					$this->setPageNotice('error', "Invalid field passed to form: '" . $field->name . "'");
+    					$this->setNotice('error', "Invalid field passed to form: '" . $field->name . "'");
     					return false;
     				}
     			}
@@ -180,7 +195,7 @@ abstract class SerenityPage
      * @param string $type
      * @param string $noticeMessage
      */
-    public function setPageNotice($type, $noticeMessage)
+    public function setNotice($type, $noticeMessage)
     {
         $_SESSION['noticeMessage'] = $noticeMessage;
         $_SESSION['noticeType'] = $type;
@@ -190,7 +205,7 @@ abstract class SerenityPage
      * Returns true/false if the session has a notice message
      * @return boolean
      */
-    public function hasPageNotice()
+    public function hasNotice()
     {
         return ($_SESSION['noticeMessage'] != "" ? true : false);
     }
@@ -201,10 +216,10 @@ abstract class SerenityPage
      * "message", "type"
      * @return array
      */
-    public function getPageNotice()
+    public function getNotice()
     {
     	$ret = array("message" => $_SESSION['noticeMessage'], "type" => $_SESSION['noticeType']);
-    	$this->setPageNotice("", "");
+    	$this->setNotice("", "");
 
     	return $ret;        
     }

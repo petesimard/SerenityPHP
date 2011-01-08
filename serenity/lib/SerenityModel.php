@@ -16,7 +16,7 @@ class SerenityField
     public $paramDefinition = null;
     private $value = null;
     public $formError = "";
-    private $isDirty = false;
+    public $isDirty = false;
 
     /**
      * Returns the fiendly name of the field if set in the validator. If none returns the raw database field name.
@@ -33,8 +33,11 @@ class SerenityField
     
     public function setValue($value)
     {
+    	$origValue = $this->value; 
     	$this->value = $value;
-    	$this->isDirty = true;
+    	
+    	if($origValue != $value)
+    		$this->isDirty = true;
     }
     
     public function getValue()
@@ -168,12 +171,56 @@ abstract class SerenityModel implements \arrayaccess
 
         $action = getPageUrl($currentPage->pageName,  $currentPage->currentAction);
 
-        $html = "<form method=\"post\" action=\"" . $action . "\">";
-        $html .= "<input type=\"hidden\" name=\"model_name\" value=\"" . $this->tableName . "\">";
-
+        $html = "<form method=\"post\" action=\"" . $action . "\">\n";
+        $html .= "<input type=\"hidden\" name=\"model_name\" value=\"" . $this->tableName . "\">\n";
+        
+        if($this->getPrimaryKeyValue() != "")
+			$html .= "<input type=\"hidden\" name=\"" . $this->tableName . "_" . $this->getPrimaryKey() . "\" value=\"" . $this->getPrimaryKeyValue() ."\">\n";
+			
         return $html;
     }
 
+
+    /**
+     * Returns the HTML form element corosponding to the field type (textbox, dropdown, texarea, etc)
+     * @param string $fieldName
+     * @throws SerenityException
+     * @return string
+     */
+    public function getFormField($fieldName)
+    {
+    	$fields = $this->getFields();
+    	
+        $field = $fields[$fieldName];
+        if($field == null)
+        {
+            throw new SerenityException("Invalid form field in class " . get_class($this) . ": '" . $fieldName . "'");
+        }
+
+        if($field->isPassword)
+        {
+            $html = "<input type=\"password\" name=\"" . $this->tableName . "_" . $fieldName . "\" value=\"" . $field->getValue() . "\">\n";
+        }
+        else if($field->type == "text" || $field->type == "tinytext" || $field->type == "bigtext"  || $field->type == "mediumtext")
+        {
+            $html = "<textarea name=\"" .  $this->tableName . "_" . $fieldName . "\">". $field->getValue() . "<textarea>\n";
+        }
+        else
+        {
+            $html = "<input type=\"text\" name=\"" . $this->tableName . "_" . $fieldName . "\" value=\"" . $field->getValue() . "\">\n";
+        }
+
+        return $html;
+    }    
+    
+    public function undirtyFields()
+    {
+    	foreach($this->getFields() as $field)
+        {
+        	$field->isDirty = false;
+        }
+    }
+    
     /**
      * Get a SerenityField field
      * @param string $fieldName
@@ -198,38 +245,6 @@ abstract class SerenityModel implements \arrayaccess
     	$fields = $this->getFields();
     	
         $fields[$fieldName]->setValue($value);
-    }
-
-    /**
-     * Returns the HTML form element corosponding to the field type (textbox, dropdown, texarea, etc)
-     * @param string $fieldName
-     * @throws SerenityException
-     * @return string
-     */
-    public function getFormField($fieldName)
-    {
-    	$fields = $this->getFields();
-    	
-        $field = $fields[$fieldName];
-        if($field == null)
-        {
-            throw new SerenityException("Invalid form field in class " . get_class($this) . ": '" . $fieldName . "'");
-        }
-
-        if($field->isPassword)
-        {
-            $html = "<input type=\"password\" name=\"" . $this->tableName . "_" . $fieldName . "\" value=\"" . $field->getValue() . "\">";
-        }
-        else if($field->type == "text" || $field->type == "tinytext" || $field->type == "bigtext"  || $field->type == "mediumtext")
-        {
-            $html = "<textarea name=\"" .  $this->tableName . "_" . $fieldName . "\">". $field->getValue() . "<textarea>";
-        }
-        else
-        {
-            $html = "<input type=\"text\" name=\"" . $this->tableName . "_" . $fieldName . "\" value=\"" . $field->getValue() . "\">";
-        }
-
-        return $html;
     }
 
     /**
@@ -319,6 +334,36 @@ abstract class SerenityModel implements \arrayaccess
             $this->updateRow();
         }
     }
+    
+    /**
+     * Called from save() to update an existing
+     */
+    private function updateRow()
+    {
+		$primaryKey = $this->getPrimaryKey();
+
+        $query = "UPDATE " . $this->tableName . " SET ";
+        foreach($this->getFields() as $field)
+        {
+            if($field->name != $primaryKey && $field->type != "form" && $field->isDirty)
+            {
+                $query .= $field->name . "='" . $field->getValue() . "', ";
+                $hasDirtyField = true;
+            }
+        }       
+        
+        // There was nothing to update
+        if(!$hasDirtyField)
+        	return;        
+
+        // Strip last comma
+        $query = substr($query, 0, strlen($query) - 2);
+
+       
+        $query .= " WHERE " . $primaryKey . "='" . $this->getPrimaryKeyValue() . "'";
+
+        $stmt = sp::db()->query($query);
+    }
 
     /**
      * Called from save() to insert a new row
@@ -337,22 +382,24 @@ abstract class SerenityModel implements \arrayaccess
             if($field->name != $primaryKey && $field->type != "form")
             {
                 $values[] = $field->getValue();
-                $query .= "" . $field->name . ",";
+                $query .= "" . $field->name . ", ";
+                
+                $hasDirtyField = true;
             }
         }
 
         // Strip last comma
-        $query = substr($query, 0, strlen($query) - 1);
+        $query = substr($query, 0, strlen($query) - 2);
 
         $query .= ") VALUES(";
 
         foreach($values as $value)
         {
-            $query .= "'" . mysql_escape_string($value) . "',";
+            $query .= "'" . mysql_escape_string($value) . "', ";
         }
 
         // Strip last comma
-        $query = substr($query, 0, strlen($query) - 1);
+        $query = substr($query, 0, strlen($query) - 2);
 
         $query .= ")";
 
@@ -373,7 +420,7 @@ abstract class SerenityModel implements \arrayaccess
      * Returns the name of the primary key of the model
      * @return string
      */
-    private function getPrimaryKey()
+    public function getPrimaryKey()
     {
         return $this->primaryKey;
     }

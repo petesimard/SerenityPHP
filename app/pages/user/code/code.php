@@ -19,11 +19,18 @@ class UserPage extends SerenityPage
         }
     }
     
+    function register_registerParams()
+    {
+    	$this->addParam("user_password", array("minLen" => 3, "maxLen" => 16));    	
+    }
+    
+    
+    
 	function logout()
     {
     	sp::app()->Auth()->logout();
     	
-    	$this->setPageNotice('success', 'Successfully logged out');
+    	$this->setNotice('success', 'Successfully logged out');
     	
     	sp::app()->redirect('home');
     }    
@@ -36,9 +43,9 @@ class UserPage extends SerenityPage
         $user = sp::app()->Auth()->authenticateUser($username, $password);
 
         if($user)
-            $this->setPageNotice('success', 'Successfully logged in');
+            $this->setNotice('success', 'Successfully logged in');
         else
-            $this->setPageNotice('error', 'Invalid username / password');
+            $this->setNotice('error', 'Invalid username / password');
 
         sp::app()->redirect('home');
      }
