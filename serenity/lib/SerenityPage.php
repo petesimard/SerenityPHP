@@ -25,7 +25,12 @@ abstract class SerenityPage
     {
         $this->data[$name] = $value;
     }
-
+    
+    public function __get($name)
+    {
+        return $this->data[$name];
+    }
+    
     /**
      * Set the template to render after the page action is finished
      * @param string $templateName
@@ -321,5 +326,21 @@ abstract class SerenityPage
 
         return $body_html;
     }
+    
+    public function errorIf($condition, $errorMessage = "")
+    {
+    	if($condition)
+    	{
+    		sf::app()->redirectToError($errorMessage);
+    		throw new SerenityStopException();
+    	}    	
+    }
+
+    public function error($errorMessage = "")
+    {
+		sf::app()->redirectToError($errorMessage);
+    	throw new SerenityStopException();
+    }
+    
 }
 ?>

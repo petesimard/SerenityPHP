@@ -14,8 +14,9 @@ class SerenityField
     public $length = 0;
     public $validator = null;
     public $paramDefinition = null;
-    public $value = null;
+    private $value = null;
     public $formError = "";
+    private $isDirty = false;
 
     /**
      * Returns the fiendly name of the field if set in the validator. If none returns the raw database field name.
@@ -29,6 +30,17 @@ class SerenityField
 
         return $name;
     }
+    
+    public function setValue($value)
+    {
+    	$this->value = $value;
+    	$this->isDirty = true;
+    }
+    
+    public function getValue()
+    {
+    	return $this->__toString();
+    }    
     
     public function __toString()
     {
@@ -91,7 +103,7 @@ abstract class SerenityModel implements \arrayaccess
     public function offsetGet($offset)
     {
     	$fields = $this->getFields();
-        return isset($fields[$offset]) ? $fields[$offset]->value : null;
+        return isset($fields[$offset]) ? $fields[$offset]->getValue() : null;
     }
 
     /* (non-PHPdoc)
@@ -104,7 +116,7 @@ abstract class SerenityModel implements \arrayaccess
         if (is_null($offset)) {
             throw new SerenityException("Cannot set field value without a field name");
         } else {
-            $fields[$offset]->value = $value;
+            $fields[$offset]->setValue($value);
         }
     }
     /* (non-PHPdoc)
@@ -137,7 +149,7 @@ abstract class SerenityModel implements \arrayaccess
     	if($fields[$name] == null)
 	    	throw new SerenityException("Undefined field '$name' in class " . get_class($this));
 	    	
-        $fields[$name]->value = $value;
+        $fields[$name]->setValue($value);
     }    
 
     /**
@@ -148,7 +160,7 @@ abstract class SerenityModel implements \arrayaccess
     {
         $currentPage = sf::app()->getCurrentPage();
 
-        $action = sf::app()->getPageUrl($currentPage->pageName,  $currentPage->currentAction);
+        $action = getPageUrl($currentPage->pageName,  $currentPage->currentAction);
 
         $html = "<form method=\"post\" action=\"" . $action . "\">";
         $html .= "<input type=\"hidden\" name=\"model_name\" value=\"" . $this->tableName . "\">";
@@ -179,7 +191,7 @@ abstract class SerenityModel implements \arrayaccess
     {
     	$fields = $this->getFields();
     	
-        $fields[$fieldName]->value = $value;
+        $fields[$fieldName]->setValue($value);
     }
 
     /**
@@ -200,15 +212,15 @@ abstract class SerenityModel implements \arrayaccess
 
         if($field->isPassword)
         {
-            $html = "<input type=\"password\" name=\"" . $this->tableName . "_" . $fieldName . "\" value=\"" . $field->value . "\">";
+            $html = "<input type=\"password\" name=\"" . $this->tableName . "_" . $fieldName . "\" value=\"" . $field->getValue() . "\">";
         }
         else if($field->type == "text" || $field->type == "tinytext" || $field->type == "bigtext"  || $field->type == "mediumtext")
         {
-            $html = "<textarea name=\"" .  $this->tableName . "_" . $fieldName . "\">". $field->value . "<textarea>";
+            $html = "<textarea name=\"" .  $this->tableName . "_" . $fieldName . "\">". $field->getValue() . "<textarea>";
         }
         else
         {
-            $html = "<input type=\"text\" name=\"" . $this->tableName . "_" . $fieldName . "\" value=\"" . $field->value . "\">";
+            $html = "<input type=\"text\" name=\"" . $this->tableName . "_" . $fieldName . "\" value=\"" . $field->getValue() . "\">";
         }
 
         return $html;
@@ -292,7 +304,7 @@ abstract class SerenityModel implements \arrayaccess
         }
 
         $primaryKeyField = $this->getField($primaryKey);
-        if($primaryKeyField->value == null)
+        if($primaryKeyField->getValue() == null)
         {
             $this->insertNew();
         }
@@ -313,12 +325,12 @@ abstract class SerenityModel implements \arrayaccess
         foreach($this->getFields() as $field)
         {
         	// Set default values
-        	if($field->defaultValue != null && $field->value == "")
-        		$field->value = $field->defaultValue;
+        	if($field->defaultValue != null && $field->getValue() == "")
+        		$field->setValue($field->defaultValue);
         	
             if($field->name != $primaryKey && $field->type != "form")
             {
-                $values[] = $field->value;
+                $values[] = $field->getValue();
                 $query .= "" . $field->name . ",";
             }
         }
@@ -347,7 +359,7 @@ abstract class SerenityModel implements \arrayaccess
         $newId = sf::db()->lastInsertId();
         if($newId)
         {
-        	$primaryKeyField->value = $newId;
+        	$primaryKeyField->setValue($newId);
         }
     }
 
@@ -366,45 +378,19 @@ abstract class SerenityModel implements \arrayaccess
      */
     public function getPrimaryKeyValue()
     {
-    	return $this->getField($this->primaryKey)->value;
+    	return $this->getField($this->primaryKey)->getValue();
     }
-
+    
     /**
-     * Return a single class of the current model.
-     * Where clause can be complete, or only the primary key
-     * 
-     * example:
-     * fetchOne(4) // Returns a single object matching the primary key 4
-     * fetchOne("name='john'") // Returns a single object with the name 'john'
+     * Return a query object. Call fetch() or fetchOne() to execute your query
      * @param string $where
-     * @return SerenityModel
+     * @return SerenityQuery
      */
-    static function fetchOne($where)
+    static function query($where = "")
     {
-        $className = explode('\\', get_called_class());
-        $className = $className[count($className) - 1];
+    	$query = new SerenityQuery();
 
-        $modelArray = call_user_func(__NAMESPACE__ . '\\' . $className . "::fetch", $where);
-
-        if(count($modelArray) == 0)
-            return null;
-
-        return $modelArray[0];
-    }
-
-    /**
-     * Return an array of objects of the current model
-     * Where clause can be complete, or only the primary key
-     * 
-     * example:
-     * fetch(4) // Returns an array of objects matching the primary key 4
-     * fetch("name='john'") // Returns an array of objects with the name 'john'
-     * @param string $where
-     * @return Array of SerenityModel
-     */    
-    static function fetch($where)
-    {
-        $className = explode('\\', get_called_class());
+    	$className = explode('\\', get_called_class());
         $className = $className[count($className) - 1];
 
         $fqClassName = __NAMESPACE__ . '\\' . $className;
@@ -414,24 +400,20 @@ abstract class SerenityModel implements \arrayaccess
 
         $tableName = $modelInfo->tableName;
 
-        $query = "SELECT * FROM " . $tableName;
+    	$query->from = $tableName;
+    	$query->modelClass = $fqClassName;
 
-        if(is_numeric($where))
+        if($where != "")
         {
-            $query .= " WHERE " . $modelInfo->getPrimaryKey() . "='" . $where . "'";
+	        if(is_numeric($where))
+	        {
+	            $query->addWhere($modelInfo->getPrimaryKey() . "='" . $where . "'");
+	        }
+	        else if($where != "")
+	            $query->addWhere($where);
         }
-        else if($where != "")
-            $query .= " WHERE " . $where;
-
-        $stmt = sf::db()->query($query);
-        $stmt->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $fqClassName);
-
-        $retArray = array();
         
-        foreach ($stmt as $model)
-        	$retArray[] = $model;
-        	
-        return $retArray;
+        return $query;
     }
 }
 ?>

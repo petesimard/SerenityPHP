@@ -17,6 +17,15 @@ class SerenityAppController
     public $route = null;
     private $currentPage = null;  
     private $loadedSnippets = array(); 
+    
+    const APP_DIRECTORY = '/app';
+    const SERENITY_DIRECTORY = '/serenity';
+    
+    const PAGE_DIRECTORY = 'pages';
+    const MODEL_DIRECTORY = 'models';
+    const PLUGIN_DIRECTORY = 'plugins';
+    const CONFIG_DIRECTORY = 'config';
+    const GLOBAL_DIRECTORY = 'global';
      
     /**
      * Constructor
@@ -28,8 +37,18 @@ class SerenityAppController
 
         sf::$currentApp = $this;
 
+		$this->startSession();
+        
         $this->setupApp();
         $this->startApp();
+    }
+    
+    /**
+     * Start the PHP Session
+     */
+    private function startSession()
+    {
+    	session_start();
     }
 
     /**
@@ -68,9 +87,9 @@ class SerenityAppController
     	$className = $pluginName . "Plugin";
 		$fqClassName = __NAMESPACE__ . "\\" . $className;
 
-        $pluginFile = sf::$baseDir . "/plugins/" . $pluginName . ".php";
+        $pluginFile = sf::$baseDir .  self::APP_DIRECTORY . "/" . self::PLUGIN_DIRECTORY . "/" . $pluginName . ".php";
         if(!file_exists($snippetFile))
-			$pluginFile = sf::$baseDir . "/serenity/plugins/" . $pluginName . ".php";
+			$pluginFile = sf::$baseDir . self::SERENITY_DIRECTORY . "/" . self::PLUGIN_DIRECTORY . "/" . $pluginName . ".php";
 
         if(!file_exists($pluginFile))
             throw new SerenityException("Missing plugin file: '" . $pluginName . ".php'");
@@ -91,15 +110,15 @@ class SerenityAppController
     function setupApp()
     {
         // Create a list of pages
-        $this->loadPages(sf::$baseDir . "/serenity/pages");
-        $this->loadPages(sf::$baseDir . "/pages");
+        $this->loadPages(sf::$baseDir . self::SERENITY_DIRECTORY . "/" . self::PAGE_DIRECTORY);
+        $this->loadPages(sf::$baseDir . self::APP_DIRECTORY . "/" . self::PAGE_DIRECTORY);
 
-        $this->loadModels(sf::$baseDir . "/models");
+        $this->loadModels(sf::$baseDir . self::APP_DIRECTORY . "/" . self::MODEL_DIRECTORY);
 
-        include sf::$baseDir . "/config/database.php";
+        include sf::$baseDir . self::APP_DIRECTORY . "/" . self::CONFIG_DIRECTORY . "/database.php";
         sf::db()->connect();
         
-        include sf::$baseDir . "/config/plugins.php";
+        include sf::$baseDir . self::APP_DIRECTORY . "/" . self::CONFIG_DIRECTORY . "/plugins.php";
     }
 
     /**
@@ -189,9 +208,9 @@ class SerenityAppController
     {
     	if(!array_key_exists($snippetName, $this->loadedSnippets))
     	{
-	        $snippetFile = sf::$baseDir . "/global/" . $snippetName . "_snippet.php";
+	        $snippetFile = sf::$baseDir . self::APP_DIRECTORY . "/" . self::GLOBAL_DIRECTORY . "/" . $snippetName . "_snippet.php";
 	        if(!file_exists($snippetFile))
-	            $snippetFile = sf::$baseDir . "/serenity/global/" . $snippetName . "_snippet.php";
+	            $snippetFile = sf::$baseDir . self::SERENITY_DIRECTORY . "/" . self::GLOBAL_DIRECTORY . "/" . $snippetName . "_snippet.php";
 	
 	        if(!file_exists($snippetFile))
 	        {
@@ -209,50 +228,6 @@ class SerenityAppController
         return $html;
     }
 
-
-    /**
-     * Returns the URL of a page/action with no surrounding HTML
-     * Params should be passed in a key=>value format
-     * @param string $page
-     * @param string $action
-     * @param array $params
-     * @return string
-     */
-    public function getPageUrl($page, $action = "", $params = null)
-    {
-        $url = "/" .  $page;
-
-        if($action == "")
-            $action = "index";
-
-        $url .= "/" . $action;
-
-        if($params != null)
-        {
-            foreach($params as $paramName=>$paramVal)
-            {
-                $url .= "/" . $paramName . "/" . $paramVal;
-            }
-        }
-
-        return $url;
-    }
-
-    /**
-     * Returns a full html hyperlink to a page/action
-     * @param string $page
-     * @param string $action
-     * @param string $linkText
-     * @param array $params
-     * @return string
-     */
-    public function getPageLink($page, $action, $linkText, $params = null)
-    {
-        $url = $this->getPageUrl($page, $action, $params);
-        $html = "<a href=\"" . $url . "\">" . $linkText . "</a>";
-
-        return $html;
-    }
 
     /**
      * Returns true/false if the app is in debug mode
@@ -336,6 +311,8 @@ class SerenityAppController
      */
     public function redirectToError($errorMessage)
     {
+		$this->getCurrentPage()->setPageNotice('error', $errorMessage);
+    	
 		$this->route = sf::$router->getErrorPage();
         $this->redirect($this->route->page, $this->route->action);
     }
@@ -345,12 +322,16 @@ class SerenityAppController
      */
     function startApp()
     {
-		session_start();
-    	
         $uri = $_SERVER['REQUEST_URI'];
         $this->route = sf::router()->parseUrl($uri);
         
-        $this->redirect($this->route->page, $this->route->action);
+        try
+        {
+        	$this->redirect($this->route->page, $this->route->action);	
+        }
+        catch (SerenityStopException $e){
+        	// Expected
+        }        
 
         // Render the page with its template
         $body_html = $this->getCurrentPage()->render();
@@ -371,7 +352,7 @@ class SerenityAppController
      */
     private function renderLayout($body_html)
     {
-        include sf::$baseDir . "/global/layout.php";
+        include sf::$baseDir . self::APP_DIRECTORY . "/global/layout.php";
     }
     
      public function __call($pluginName, $args)  

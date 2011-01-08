@@ -86,6 +86,10 @@ class ParamDefinition
                 break;
                 case "defaultValue":
                 	$this->defaultValue = $value;
+                break;
+                case "errorMessage":
+                	$this->errorMessage = $value;
+                break;
             }
         }
     }
@@ -219,7 +223,7 @@ class ParameterValidator
             }
         }
 
-        // Integer
+        // Number
         if($paramDefinition->type == ParamDefinition::TYPE_NUMBER)
         {
             if(!is_numeric($paramValue))
@@ -237,7 +241,7 @@ class ParameterValidator
         // Integer
         if($paramDefinition->type == ParamDefinition::TYPE_INT)
         {
-            if(!is_int($paramValue))
+            if(preg_match('/^\d*$/', $paramValue) != 1)
             {
                 if($paramDefinition->errorMessage === null)
                     $errorMessage = $paramName . " must be an integer.";

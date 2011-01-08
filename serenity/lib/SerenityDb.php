@@ -2,6 +2,72 @@
 namespace Serenity;
 
 
+class SerenityQuery
+{
+	public $sql;
+	
+	public $modelClass;
+	public $from;
+	public $select;
+	public $where;
+	public $orderBy;
+	
+	public function fetch()
+	{
+		$this->buildQuery();
+
+		$stmt = sf::db()->query($this->sql);
+        $stmt->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $this->modelClass);
+
+        $modelArray = array();
+        
+        foreach ($stmt as $model)
+        	$modelArray[] = $model;
+        	
+        return $modelArray;	
+	}	
+	
+	public function fetchOne()
+	{
+		$modelArray = $this->fetch();
+		
+        if(count($modelArray) == 0)
+            return null;
+
+        return $modelArray[0];
+	}
+	
+	public function orderBy($orderBy)
+	{
+		$this->orderBy = $orderBy;
+		
+		return $this;
+	}
+	
+	public function addWhere($where)
+	{
+		if($this->where != "")
+		{
+			$this->where .= " AND ";
+		}
+		
+		$this->where .= $where;
+		
+		return $this;
+	}
+	
+	protected function buildQuery()
+	{
+		$this->sql = "SELECT * FROM " . $this->from;
+		
+		if($this->where != "")
+			$this->sql .= " WHERE " . $this->where;
+
+		if($this->orderBy != "")
+			$this->sql .= " ORDER BY " . $this->orderBy;
+	}
+}
+
 /**
  * Serenity Database Class
  * @author Pete

@@ -55,7 +55,7 @@ class AuthPlugin extends SerenityPlugin
 	 */
 	public function loadAuthenticatedUserData($userId)
 	{
-		$this->authenticatedUser = $this->model->fetchOne($userId);
+		$this->authenticatedUser = $this->model->query($userId)->fetchOne();
 	}	
 	
 	/**
@@ -84,7 +84,7 @@ class AuthPlugin extends SerenityPlugin
 	 */
 	public function authenticateUser($username, $password)
 	{
-		$authUser = $this->model->fetchOne($this->loginNameField . "='" . mysql_escape_string($username) . "'");
+		$authUser = $this->model->query($this->loginNameField . "='" . mysql_escape_string($username) . "'")->fetchOne();
 		
 		if($authUser == null)
 			return null;
