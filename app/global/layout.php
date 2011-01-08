@@ -21,8 +21,8 @@ namespace Serenity;
             <li><a href="#">Services</a></li>
             <li><a href="#">Contact us</a></li>
             <div align="right"><font color="white"><?php 
-            if(sf::app()->Auth()->isLoggedIn())
-            	echo "Logged in as " . sf::app()->Auth()->getUser()->getField("username") . ". " . getPageLink("user", "logout", "<font color=white>Logout</font>") . ".";
+            if(sp::app()->Auth()->isLoggedIn())
+            	echo "Logged in as " . sp::app()->Auth()->getUser()->getField("username") . ". " . getPageLink("user", "logout", "<font color=white>Logout</font>") . ".";
             else
             	echo "Not logged in.";            	
             ?></font>
@@ -32,7 +32,7 @@ namespace Serenity;
     <div id="content-container">
         <div id="section-navigation">
         <?php
-        if(!sf::app()->Auth()->isLoggedIn())
+        if(!sp::app()->Auth()->isLoggedIn())
         { ?>
             <form method="post" action="<?=getPageUrl("user", "login")?>">
             Username:<br>
@@ -51,10 +51,10 @@ namespace Serenity;
         </div>
         <div id="content">
         <?
-        $pageNotice = sf::app()->getCurrentPage()->getPageNotice();
+        $pageNotice = sp::app()->getCurrentPage()->getPageNotice();
 
         if($pageNotice['message'] != "")
-            echo sf::app()->getSnippet($pageNotice['type'], array("message" => $pageNotice['message']));
+            echo sp::app()->getSnippet($pageNotice['type'], array("message" => $pageNotice['message']));
 
         echo $body_html;
 ?>

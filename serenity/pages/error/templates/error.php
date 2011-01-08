@@ -1,6 +1,6 @@
 <?
 namespace Serenity;
 
-//echo sf::app()->getSnippet("error", array("message" => $errorMessage));
+//echo sp::app()->getSnippet("error", array("message" => $errorMessage));
 
 ?>

@@ -1,5 +1,5 @@
 SerenityPHP Framework
 
-Point your web server location to the sernity/web directory
+Point your web server location to the web directory
 Make sure your server supports mod_rewrite
 More docs coming soon

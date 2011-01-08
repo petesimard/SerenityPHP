@@ -66,6 +66,12 @@ abstract class SerenityModel implements \arrayaccess
     	$this->fields = new \ArrayObject();
         $class = get_called_class();
 
+    	$className = explode('\\', get_called_class());
+        $className = $className[count($className) - 1];
+        
+        $tableName = strtolower(substr($className, 0, strlen($className) - 5));
+        $this->tableName = $tableName;
+        
 		$this->init();
         
         if (!array_key_exists($class, self::$paramDefinitions))    	
@@ -158,7 +164,7 @@ abstract class SerenityModel implements \arrayaccess
      */
     public function getFormStart()
     {
-        $currentPage = sf::app()->getCurrentPage();
+        $currentPage = sp::app()->getCurrentPage();
 
         $action = getPageUrl($currentPage->pageName,  $currentPage->currentAction);
 
@@ -350,13 +356,13 @@ abstract class SerenityModel implements \arrayaccess
 
         $query .= ")";
 
-        $stmt = sf::db()->query($query);
+        $stmt = sp::db()->query($query);
 		
         $fields = $this->getFields();
         $primaryKeyField = $fields[$this->getPrimaryKey()];
 
         // Set the new primary key
-        $newId = sf::db()->lastInsertId();
+        $newId = sp::db()->lastInsertId();
         if($newId)
         {
         	$primaryKeyField->setValue($newId);
@@ -396,7 +402,7 @@ abstract class SerenityModel implements \arrayaccess
         $fqClassName = __NAMESPACE__ . '\\' . $className;
 
         $modelName = substr($className, 0, strlen($className) - 5);
-        $modelInfo = sf::app()->getModel($modelName);
+        $modelInfo = sp::app()->getModel($modelName);
 
         $tableName = $modelInfo->tableName;
 

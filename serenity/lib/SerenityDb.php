@@ -16,7 +16,7 @@ class SerenityQuery
 	{
 		$this->buildQuery();
 
-		$stmt = sf::db()->query($this->sql);
+		$stmt = sp::db()->query($this->sql);
         $stmt->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $this->modelClass);
 
         $modelArray = array();
@@ -118,7 +118,7 @@ class SerenityDatabase
     {
         $smt = $this->connection->query($query);
 
-        if(sf::app()->isDebugMode())
+        if(sp::app()->isDebugMode())
         {
             $this->queryLog[] = $query;
         }
@@ -151,5 +151,5 @@ class SerenityDatabase
 
 // Create singleton
 $db = new SerenityDatabase();
-sf::$dababase = $db;
+sp::$dababase = $db;
 ?>

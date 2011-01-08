@@ -9,11 +9,11 @@ class UserPage extends SerenityPage
         {
             $user = $this->getForm();
             
-            $user['salt'] = sf::app()->Auth()->generateSalt(16);
-            $user['password'] = sf::app()->Auth()->getPasswordHash($user['password'], $user['salt']);
+            $user['salt'] = sp::app()->Auth()->generateSalt(16);
+            $user['password'] = sp::app()->Auth()->getPasswordHash($user['password'], $user['salt']);
             $user->save();
             
-            sf::app()->Auth()->onUserAuthenticated($user);
+            sp::app()->Auth()->onUserAuthenticated($user);
 
             $this->setTemplate("success");
         }
@@ -21,11 +21,11 @@ class UserPage extends SerenityPage
     
 	function logout()
     {
-    	sf::app()->Auth()->logout();
+    	sp::app()->Auth()->logout();
     	
     	$this->setPageNotice('success', 'Successfully logged out');
     	
-    	sf::app()->redirect('home');
+    	sp::app()->redirect('home');
     }    
     
     function login()
@@ -33,14 +33,14 @@ class UserPage extends SerenityPage
         $username = $this->getParam('login_username');
         $password = $this->getParam('login_password');
 		
-        $user = sf::app()->Auth()->authenticateUser($username, $password);
+        $user = sp::app()->Auth()->authenticateUser($username, $password);
 
         if($user)
             $this->setPageNotice('success', 'Successfully logged in');
         else
             $this->setPageNotice('error', 'Invalid username / password');
 
-        sf::app()->redirect('home');
+        sp::app()->redirect('home');
      }
 }
 ?>

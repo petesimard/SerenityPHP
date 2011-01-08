@@ -20,6 +20,6 @@ class AdminPage extends SerenityPage
     
     function editUser_registerParams()
     {    
-    	$this->addParam("id", array("type" => "int", "minValue" => 1, "required" => true, "errorMessage" => "Invalid user ID"));
+    	$this->addParam("user_id", array("type" => "int", "minValue" => 1, "required" => true, "errorMessage" => "Invalid user ID"));
     }    
 }

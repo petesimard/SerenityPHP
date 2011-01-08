@@ -2,10 +2,10 @@
 namespace Serenity;
 
 // Load Plugins
-// sf::app()->loadPlugin([plugin name], [array of parameters]); 
+// sp::app()->loadPlugin([plugin name], [array of parameters]); 
 
-sf::app()->loadPlugin("auth", array(
-"model" => sf::app()->getModel("user"),
+sp::app()->loadPlugin("auth", array(
+"model" => sp::app()->getModel("user"),
 "loginNameField" => "username",
 "passwordField" => "password",
 "passwordHashFunction"=> "sha1",

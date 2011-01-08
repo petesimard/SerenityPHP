@@ -133,7 +133,8 @@ class ParameterValidator
         // Required field
         if($paramDefinition->required == true)
         {
-            if($paramValue == "")
+        	
+            if($paramValue == "" || $paramValue == null)
             {
                 if($paramDefinition->errorMessage === null)
                     $errorMessage = $paramName . " is a required field.";
@@ -167,7 +168,7 @@ class ParameterValidator
             if($referenceModel == null)
                 throw new SerenityException("Unable to set field '" . $paramName . "' to unique without reference model.");
 
-            $existingModel = $referenceModel->fetchOne($paramDefinition->name . "='" . mysql_escape_string($paramValue) . "'");
+            $existingModel = $referenceModel->query($paramDefinition->name . "='" . mysql_escape_string($paramValue) . "'")->fetchOne();
             if($existingModel != null)
             {
                 if($paramDefinition->errorMessage === null)
@@ -474,5 +475,5 @@ class ParameterValidator
 
 // Create singleton
 $validator = new ParameterValidator();
-sf::$parameterValidator = $validator;
+sp::$parameterValidator = $validator;
 ?>

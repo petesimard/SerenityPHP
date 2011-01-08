@@ -7,7 +7,7 @@ namespace Serenity;
  * @author Pete
  *
  */
-class sf
+class sp
 {
     public static $baseDir = "";
     public static $router = null;
@@ -29,7 +29,7 @@ class sf
      */
     public function app()
     {
-        return sf::$currentApp;
+        return self::$currentApp;
     }
 
     /**
@@ -38,7 +38,7 @@ class sf
      */
     public function db()
     {
-        return sf::$dababase;
+        return self::$dababase;
     }
     
     /**
@@ -47,7 +47,7 @@ class sf
      */
     public function validator()
     {
-        return sf::$parameterValidator;
+        return self::$parameterValidator;
     }
     
     /**
@@ -56,10 +56,10 @@ class sf
      */
     public function router()
     {
-    	return sf::$router;
+    	return self::$router;
     }
 }
 
 // Start initilization
-sf::init();
+sp::init();
 ?>

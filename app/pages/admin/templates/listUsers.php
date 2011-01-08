@@ -12,7 +12,7 @@ foreach($users as $user)
 {
 ?>
 <tr>
-<td><?=getPageLink('admin', 'editUser', $user['id'], array('id' => $user['id']))?></td><td><?=$user['username']?></td><td><?=$user['password']?></td><td><?=$user['email']?></td>
+<td><?=getPageLink('admin', 'editUser', $user['id'], array('user_id' => $user['id']))?></td><td><?=$user['username']?></td><td><?=$user['password']?></td><td><?=$user['email']?></td>
 </tr>
 <?php
 }

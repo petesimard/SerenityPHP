@@ -93,7 +93,7 @@ class SerenityRouter
         if($actionName == "")
             $actionName = "index";
 
-        $page = sf::app()->getPage($pageName);
+        $page = sp::app()->getPage($pageName);
 
         if($page == null)
             throw new SerenityException("Page '" . $pageName . "' not found");
@@ -108,7 +108,7 @@ class SerenityRouter
 
     public function __construct()
     {
-        sf::$router = $this;
+        sp::$router = $this;
     }
 
     static function getInstance()

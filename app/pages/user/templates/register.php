@@ -4,7 +4,7 @@ namespace Serenity;
 <div align="left">
 <b>New user registration</b><br><br>
 <?
-$model = sf::app()->getModel("user");
+$model = sp::app()->getModel("user");
 echo $model->getFormStart();
 ?>
 Choose Username: <?=$formErrors['username']?><br>

@@ -37,6 +37,7 @@ abstract class SerenityPage
      */
     public function setTemplate($templateName)
     {
+    	sp::app()->addLogMessage("Set template '" . $templateName . "'");
         $this->templateName = $templateName;
     }
 
@@ -77,7 +78,7 @@ abstract class SerenityPage
         {
             if($paramName == "model_name")
             {
-                $model = sf::app()->getModel($paramValue);
+                $model = sp::app()->getModel($paramValue);
                 if($model == null)
                 {
                     throw new SerenityException("Invalid model passed: " . $paramName);
@@ -91,6 +92,8 @@ abstract class SerenityPage
 
         if($formModel == null)
             return;
+            
+        sp::app()->addLogMessage("Bound form to page '" . get_class($formModel) . "'");
 
         foreach($this->params as $paramName => $paramValue)
         {
@@ -135,7 +138,7 @@ abstract class SerenityPage
 
         foreach($this->formModel->getFields() as $field)
         {
-            $errorMessage = sf::validator()->validate($field->value, $field->paramDefinition);
+            $errorMessage = sp::validator()->validate($field->getValue(), $field->paramDefinition);
             if($errorMessage != "")
             {
                 $field->formError = $errorMessage;
@@ -213,18 +216,15 @@ abstract class SerenityPage
      */
     public function validateParams()
     {
-        foreach($this->params as $paramName => $paramValue)
+        foreach($this->paramDefinitions as $paramName => $paramDefinition)
         {
-            $paramDefinition = $this->paramDefinitions[$paramName];
+            $paramValue = $this->params[$paramName];
 
-            if($paramDefinition == null)
-                continue;
-
-            $errorMessage = sf::validator()->validate($paramValue, $paramDefinition);
+            $errorMessage = sp::validator()->validate($paramValue, $paramDefinition);
             if($errorMessage != "")
                 return $errorMessage;
         }
-
+        
         return "";
     }
 
@@ -267,31 +267,45 @@ abstract class SerenityPage
      */
     public function parseActionParams()
     {
+    	$this->params = array();
+    	    	
         $methods = get_class_methods($this);
         foreach ($methods as $method_name)
         {
-            if(substr($method_name, -15) == "_registerParams")
-            {
-                $this->{$method_name}();
-            }
+        	if(substr($method_name, 0, strlen($this->currentAction)) == $this->currentAction)
+        	{
+	            if(substr($method_name, -15) == "_registerParams")
+	            {
+	                $this->{$method_name}();
+	            }
+        	}
         }
     }
 
     /**
-     * Execute action on the current page
+     * Execute the current action on the current page
+     */
+    public function executeCurrentAction()
+    {
+        $actionName = $this->currentAction;
+        sp::app()->addLogMessage("Executing action '" . $actionName . "'");
+        $this->{$actionName}();
+    }
+    
+    /**
+     * Set the action to run
      * @param string $actionName
      * @throws SerenityException
      */
-    public function executeAction($actionName)
+    public function setCurrentAction($actionName)
     {
-
         if(!method_exists($this, $actionName))
         {
             throw new SerenityException("Missing action: " . get_class($this) . "->" . $actionName . "()");
         }
-
+    	
         $this->currentAction = $actionName;
-        $this->{$actionName}();
+        $this->parseActionParams();
     }
 
     /**
@@ -300,6 +314,8 @@ abstract class SerenityPage
      */
     public function render()
     {
+    	sp::app()->addLogMessage("Rendering template '" . $this->templateName . "'");
+    	
         if($this->formModel != null && !$this->isFormValid())
         {
             foreach($this->formModel->getFields() as $field)
@@ -331,14 +347,14 @@ abstract class SerenityPage
     {
     	if($condition)
     	{
-    		sf::app()->redirectToError($errorMessage);
+    		sp::app()->redirectToError($errorMessage);
     		throw new SerenityStopException();
     	}    	
     }
 
     public function error($errorMessage = "")
     {
-		sf::app()->redirectToError($errorMessage);
+		sp::app()->redirectToError($errorMessage);
     	throw new SerenityStopException();
     }
     
