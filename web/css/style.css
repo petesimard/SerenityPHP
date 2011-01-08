@@ -1,0 +1,139 @@
+body{
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:13px;
+}
+.info, .success, .warning, .error, .validation {
+    border: 1px solid;
+    margin: 10px 0px;
+    padding:15px 10px 15px 50px;
+    background-repeat: no-repeat;
+    background-position: 10px center;
+}
+.info {
+    color: #00529B;
+    background-color: #BDE5F8;
+    background-image: url('/images/info.png');
+}
+.success {
+    color: #4F8A10;
+    background-color: #DFF2BF;
+    background-image:url('/images/success.png');
+}
+.warning {
+    color: #9F6000;
+    background-color: #FEEFB3;
+    background-image: url('/images/warning.png');
+}
+.error {
+    color: #D8000C;
+    background-color: #FFBABA;
+    background-image: url('/images/error.png');
+}
+.formError {
+    color: #D8000C;
+    font-style:italic;
+}
+#container
+{
+    margin: 0 auto;
+    width: 1000px;
+    background: #fff;
+}
+
+#header
+{
+    background: #ccc;
+    padding: 20px;
+}
+
+#header h1 { margin: 0; }
+
+#navigation
+{
+    float: left;
+    width: 1000px;
+    background: #333;
+}
+
+#navigation ul
+{
+    margin: 0;
+    padding: 0;
+}
+
+#navigation ul li
+{
+    list-style-type: none;
+    display: inline;
+}
+
+#navigation li a
+{
+    display: block;
+    float: left;
+    padding: 5px 10px;
+    color: #fff;
+    text-decoration: none;
+    border-right: 1px solid #fff;
+}
+
+#navigation li a:hover { background: #383; }
+
+#content-container
+{
+    float: left;
+    width: 1000px;
+    background: #fff url(/wp-content/uploads/layout-three-fixed-background.gif) repeat-y 100% 0;
+}
+
+#section-navigation
+{
+    float: left;
+    width: 160px;
+    padding: 20px 0;
+    margin: 0 20px;
+    display: inline;
+}
+
+#section-navigation ul
+{
+    margin: 0;
+    padding: 0;
+}
+
+#section-navigation ul li
+{
+    margin: 0 0 1em;
+    padding: 0;
+    list-style-type: none;
+}
+
+#content
+{
+    float: left;
+    width: 500px;
+    padding: 20px 0;
+    margin: 0 0 0 30px;
+}
+
+#content h2 { margin: 0; }
+
+#aside
+{
+    float: right;
+    width: 200px;
+    padding: 20px 0;
+    margin: 0 20px 0 0;
+    display: inline;
+}
+
+#aside h3 { margin: 0; }
+
+#footer
+{
+    clear: left;
+    background: #ccc;
+    text-align: right;
+    padding: 20px;
+    height: 1%;
+}

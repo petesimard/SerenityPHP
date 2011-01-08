@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<buildpath>
+	<buildpathentry kind="src" path="config"/>
+	<buildpathentry kind="src" path="global"/>
+	<buildpathentry kind="src" path="models"/>
+	<buildpathentry kind="src" path="pages/home/code"/>
+	<buildpathentry kind="src" path="pages/home/templates"/>
+	<buildpathentry kind="src" path="pages/user/code"/>
+	<buildpathentry kind="src" path="pages/user/templates"/>
+	<buildpathentry kind="src" path="serenity"/>
+	<buildpathentry kind="src" path="web"/>
+	<buildpathentry kind="con" path="org.eclipse.php.core.LANGUAGE"/>
+</buildpath>
