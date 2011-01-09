@@ -13,6 +13,7 @@ class AuthPlugin extends SerenityPlugin
 	protected $loginNameField;
 	protected $passwordField;
 	protected $saltField;
+	protected $accessLevelField;
 	protected $passwordHash;
 	protected $siteSalt;
 
@@ -27,6 +28,8 @@ class AuthPlugin extends SerenityPlugin
 			
 		$this->loginNameField = $params['loginNameField'];
 		$this->passwordField = $params['passwordField'];
+		$this->accessLevelField = $params['accessLevelField'];
+		
 		$this->passwordHash = $params['passwordHashFunction'];
 		if($this->passwordHash == "")
 			$this->passwordHash = "sha1";
@@ -47,6 +50,16 @@ class AuthPlugin extends SerenityPlugin
 	
 	public function onPageEnd($params)
 	{	
+	}	
+	
+	public function getTemplateVariables()
+	{	
+		if($this->authenticatedUser)
+			$vars = array('userId' => $this->authenticatedUser->getPrimaryKeyValue(), 'adminLevel' => $this->authenticatedUser['adminLevelField']);
+		else
+			$vars = array();
+			
+		return $vars;
 	}
 	
 	/**

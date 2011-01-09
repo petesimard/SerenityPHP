@@ -343,13 +343,24 @@ abstract class SerenityPage
             }
         }
 
-        unset($fieldName);
+        
+        foreach(sp::app()->getPlugins() as $plugin)
+        {
+        	foreach($plugin->getTemplateVariables() as $pageVarName=>$pageVarVal)
+        	{
+        		$$pageVarName = $pageVarVal;
+        	}
+        }
 
         foreach($this->data as $pageVarName=>$pageVarVal)
         {
             $$pageVarName = $pageVarVal;
         }
-
+        
+		unset($fieldName);        
+        unset($pageVarName);        
+		unset($pageVarVal);        
+        
         ob_start();
         include $this->dir . "/templates/" . $this->templateName . ".php";
         $body_html = ob_get_contents();

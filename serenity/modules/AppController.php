@@ -71,6 +71,15 @@ class SerenityAppController
     {
     	return $this->appLog;
     }
+    
+    /**
+     * Return an array of loaded plugins
+     * @return Ambiguous
+     */
+    public function getPlugins()
+    {
+    	return $this->plugins;
+    }
 
     /**
      * Returns the page identified by name
@@ -375,6 +384,15 @@ class SerenityAppController
      */
     private function renderLayout($body_html)
     {
+        foreach(sp::app()->getPlugins() as $plugin)
+        {
+        	foreach($plugin->getTemplateVariables() as $pageVarName=>$pageVarVal)
+        	{
+        		$$pageVarName = $pageVarVal;
+        	}
+        }
+    	
+        
     	$this->addLogMessage("Rendering layout");
         include sp::$baseDir . self::APP_DIRECTORY . "/global/layout.php";
     }

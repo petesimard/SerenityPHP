@@ -146,6 +146,8 @@ class ParameterValidator
 	            }
         	}
         }
+        else if($paramValue == "" || $paramValue == null)
+        	return "";
 
         // Compare to another field
         if($paramDefinition->matchField != null)

@@ -25,5 +25,11 @@ abstract class SerenityPlugin
      * @todo impliment
      */
     abstract function onPageEnd($params);
+    
+     /**
+      * Return an array of key => values that will be converted
+      * into local variables for easy use in templates and layouts
+      */
+     abstract function getTemplateVariables();
 }
 ?>

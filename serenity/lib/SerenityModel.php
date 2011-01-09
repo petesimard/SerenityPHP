@@ -354,7 +354,7 @@ abstract class SerenityModel implements \arrayaccess
         
         // There was nothing to update
         if(!$hasDirtyField)
-        	return;        
+        	return null;        
 
         // Strip last comma
         $query = substr($query, 0, strlen($query) - 2);
