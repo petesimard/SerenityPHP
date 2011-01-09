@@ -3,7 +3,7 @@ namespace Serenity;
 
 class ErrorPage extends SerenityPage
 {
-    function error()
+    function index()
     {
         $this->errorMessage =  $this->getParam("errorMessage");
     }

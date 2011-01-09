@@ -38,6 +38,11 @@ class UserModel extends SerenityModel
         $field->length = "64";
         $field->validator = array("type" => "email", "required" => true, "unique" => true, "friendlyName" => "Email Address");
         $field->index = "index";
+        
+        $field = $this->addField("posts");
+        $field->type = "hasMany";
+        $field->foreignTable = "blogPost";
+        $field->foreignKey = "user_id";          
     }
 }
 ?>

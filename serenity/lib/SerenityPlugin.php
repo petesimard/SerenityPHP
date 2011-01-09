@@ -15,16 +15,14 @@ abstract class SerenityPlugin
     abstract function onAppLoad($params);
     /**
      * Called whenever a page action is called
-     * @param unknown_type $params
-     * @todo impliment
+     * @param SerenityPage $page
      */
-    abstract function onPageStart($params);
+    abstract function onActionStart($page);
     /**
      * Called at the end of a page action
-     * @param unknown_type $params
-     * @todo impliment
+     * @param SerenityPage $page
      */
-    abstract function onPageEnd($params);
+    abstract function onActionEnd($page);
     
      /**
       * Return an array of key => values that will be converted

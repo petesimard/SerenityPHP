@@ -1,5 +1,7 @@
 <?php
-    /**
+namespace Serenity;
+
+/**
      * Returns the URL of a page/action with no surrounding HTML
      * Params should be passed in a key=>value format
      * @param string $page
@@ -11,10 +13,11 @@
     {
         $url = "/" .  $page;
 
-        if($action == "")
+        if($action == "" && $params != null)
             $action = "index";
 
-        $url .= "/" . $action;
+        if($action != "")
+        	$url .= "/" . $action;
 
         if($params != null)
         {

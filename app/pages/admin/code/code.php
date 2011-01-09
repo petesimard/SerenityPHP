@@ -1,8 +1,10 @@
 <?php
 namespace Serenity;
 
-class AdminPage extends SerenityPage
+class AdminPage extends SerenityAuthPage
 {
+	public $accessLevel = 2;
+	
     function index()
     {
     	$this->users = UserModel::query()->orderBy('id ASC')->fetch();
@@ -12,6 +14,8 @@ class AdminPage extends SerenityPage
     
     function editUser()
     {   
+    	$this->auth()->checkAccess(3);
+    	
     	if($this->isFormValid())
     	{
     		$this->user = $this->getForm();

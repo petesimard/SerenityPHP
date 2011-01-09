@@ -33,7 +33,7 @@ class SerenityRouter
     {
         $pageRequest = new SerenityPageRequest();
         $pageRequest->action = "error";
-        $pageRequest->page = "error";
+        $pageRequest->page = "";
 
         return $pageRequest;
     }

@@ -13,11 +13,15 @@ class SerenityField
     public $type = "";
     public $length = 0;
     public $validator = null;
+    public $model = null;
     public $paramDefinition = null;
     private $value = null;
     public $formError = "";
     public $isDirty = false;
-
+    public $foreignTable = "";
+    public $foreignKey = "";
+	public $localKey = "";
+    
     /**
      * Returns the fiendly name of the field if set in the validator. If none returns the raw database field name.
      * @return string
@@ -42,12 +46,40 @@ class SerenityField
     
     public function getValue()
     {
+    	if($this->type == "hasOne" || $this->type == "hasMany")
+    	{
+    		return $this->getAssociatedModels();
+    	}
+    	
     	return $this->__toString();
-    }    
+    }   
+
+    public function isDatabaseField()
+    {
+    	if($type == "form" || $type == "hasOne" || $type == "hasMany")
+    		return false;
+    	else
+    		return true;
+    }
     
     public function __toString()
     {
     	return $this->value;
+    }
+    
+    private function getAssociatedModels()
+    {
+    	$foreignModel = sp::app()->getModel($this->foreignTable);
+    	if($foreignModel == null)
+    		throw new SerenityException("Invalid associated model '" . $this->foreignTable . "'");
+    	
+    	$localKey = $this->localKey;
+    	if($localKey == "")
+    		$localKeyValue = $this->model->getPrimaryKeyValue();
+    	else 
+    		$localKeyValue = $this->model->getField($localKey)->value;
+    	
+    	return $foreignModel->query($this->foreignKey . "='" . $localKeyValue . "'")->fetch();
     }
 }
 
@@ -258,6 +290,7 @@ abstract class SerenityModel implements \arrayaccess
         $field = new SerenityField();
 
         $field->name = $name;
+        $field->model = $this;
         $fields[$name] = $field;
         
         return $field;
@@ -345,7 +378,7 @@ abstract class SerenityModel implements \arrayaccess
         $query = "UPDATE " . $this->tableName . " SET ";
         foreach($this->getFields() as $field)
         {
-            if($field->name != $primaryKey && $field->type != "form" && $field->isDirty)
+            if($field->name != $primaryKey && $field->isDatabaseField() && $field->isDirty)
             {
                 $query .= $field->name . "='" . $field->getValue() . "', ";
                 $hasDirtyField = true;
@@ -354,7 +387,7 @@ abstract class SerenityModel implements \arrayaccess
         
         // There was nothing to update
         if(!$hasDirtyField)
-        	return null;        
+        	return;        
 
         // Strip last comma
         $query = substr($query, 0, strlen($query) - 2);
@@ -379,7 +412,7 @@ abstract class SerenityModel implements \arrayaccess
         	if($field->defaultValue != null && $field->getValue() == "")
         		$field->setValue($field->defaultValue);
         	
-            if($field->name != $primaryKey && $field->type != "form")
+            if($field->name != $primaryKey && $field->isDatabaseField())
             {
                 $values[] = $field->getValue();
                 $query .= "" . $field->name . ", ";
@@ -460,7 +493,7 @@ abstract class SerenityModel implements \arrayaccess
         {
 	        if(is_numeric($where))
 	        {
-	            $query->addWhere($modelInfo->getPrimaryKey() . "='" . $where . "'");
+	            $query->addWhere($modelInfo->getPrimaryKey() . "='" . mysql_escape_string($where) . "'");
 	        }
 	        else if($where != "")
 	            $query->addWhere($where);

@@ -9,17 +9,20 @@ namespace Serenity;
  */
 abstract class SerenityPage
 {
-    public $data = array();
-    public $templateName = "";
-    public $pageName = "";
-    public $currentAction = "";
-    public $dir;
-    public $paramDefinitions = array();
-    public $params = array();
-    private $formModel = null;
-    private $isFormValid = false;
-    private $noticeMessage = "";
-    private $noticeType = "";
+	// Note: all class vars should be declared private or protected
+	// to ensure there is no collision with use data
+	
+    protected $data = array();
+    protected $templateName = "";
+    protected $pageName = "";
+    protected $currentAction = "";
+    protected $dir;
+    protected $paramDefinitions = array();
+    protected $params = array();
+    protected $formModel = null;
+    protected $isFormValid = false;
+    protected $noticeMessage = "";
+    protected $noticeType = "";
 
     public function __set($name, $value)
     {
@@ -304,7 +307,19 @@ abstract class SerenityPage
     {
         $actionName = $this->currentAction;
         sp::app()->addLogMessage("Executing action '" . $actionName . "'");
+        
+        foreach(sp::app()->getPlugins() as $plugin)
+        {
+        	$plugin->onActionStart($this);
+        }
+                
         $this->{$actionName}();
+        
+		foreach(sp::app()->getPlugins() as $plugin)
+        {
+        	$plugin->onActionEnd($this);
+        }
+                        
     }
     
     /**
@@ -382,6 +397,24 @@ abstract class SerenityPage
     {
 		sp::app()->redirectToError($errorMessage);
     	throw new SerenityStopException();
+    }
+    
+    /**
+     * Set page name
+     * @param string $name
+     */
+    public function setPageName($name)
+    {
+    	$this->pageName = $name;
+    }
+    
+    /**
+     * Set the base directory of the page
+     * @param string $dir
+     */
+    public function setDir($dir)
+    {
+    	$this->dir = $dir;
     }
     
 }

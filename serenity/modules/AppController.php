@@ -117,9 +117,9 @@ class SerenityAppController
     	$className = $pluginName . "Plugin";
 		$fqClassName = __NAMESPACE__ . "\\" . $className;
 
-        $pluginFile = sp::$baseDir .  self::APP_DIRECTORY . "/" . self::PLUGIN_DIRECTORY . "/" . $pluginName . ".php";
+        $pluginFile = sp::$baseDir .  self::APP_DIRECTORY . "/" . self::PLUGIN_DIRECTORY . "/" . $pluginName . "/" . $pluginName . ".php";
         if(!file_exists($snippetFile))
-			$pluginFile = sp::$baseDir . self::SERENITY_DIRECTORY . "/" . self::PLUGIN_DIRECTORY . "/" . $pluginName . ".php";
+			$pluginFile = sp::$baseDir . self::SERENITY_DIRECTORY . "/" . self::PLUGIN_DIRECTORY . "/" . $pluginName . "/" . $pluginName . ".php";
 
         if(!file_exists($pluginFile))
             throw new SerenityException("Missing plugin file: '" . $pluginName . ".php'");
@@ -139,16 +139,15 @@ class SerenityAppController
      */
     function setupApp()
     {
-        // Create a list of pages
-        $this->loadPages(sp::$baseDir . self::SERENITY_DIRECTORY . "/" . self::PAGE_DIRECTORY);
-        $this->loadPages(sp::$baseDir . self::APP_DIRECTORY . "/" . self::PAGE_DIRECTORY);
-
-        $this->loadModels(sp::$baseDir . self::APP_DIRECTORY . "/" . self::MODEL_DIRECTORY);
-
         include sp::$baseDir . self::APP_DIRECTORY . "/" . self::CONFIG_DIRECTORY . "/database.php";
         sp::db()->connect();
-        
+    	
+        $this->loadModels(sp::$baseDir . self::APP_DIRECTORY . "/" . self::MODEL_DIRECTORY);
+    	
         include sp::$baseDir . self::APP_DIRECTORY . "/" . self::CONFIG_DIRECTORY . "/plugins.php";
+    	
+    	$this->loadPages(sp::$baseDir . self::SERENITY_DIRECTORY . "/" . self::PAGE_DIRECTORY);
+        $this->loadPages(sp::$baseDir . self::APP_DIRECTORY . "/" . self::PAGE_DIRECTORY);
     }
 
     /**
@@ -213,8 +212,8 @@ class SerenityAppController
                     {
                         $newPageClass = new $fqClassName;
                         $this->pages[$className] = $newPageClass;
-                        $this->pages[$className]->dir = $baseDir . "/" . $dir;
-                        $this->pages[$className]->pageName = $dir;
+                        $this->pages[$className]->setDir($baseDir . "/" . $dir);
+                        $this->pages[$className]->setPageName($dir);
                     }
                 }
             }
@@ -295,6 +294,7 @@ class SerenityAppController
     
     /**
      * Redirect to another page/action without causing a browser refresh
+     * Will cause any existing action to exit out
      * 
      * Example
      * 
@@ -313,6 +313,10 @@ class SerenityAppController
     	if($page == null)
     		throw new SerenityException ("Unable to locate page '" . $pageName . "'");
     	
+        // Execute the action
+        if($action == "")
+        	$action = "index";    		
+    		
     	$this->setPage($page);
     	$this->getCurrentPage()->setCurrentAction($action);
     	
@@ -324,15 +328,21 @@ class SerenityAppController
         	$this->redirectToError($paramErrorMsg);
         	return;
         }
-        
-        // Execute the action
-        if($action == "")
-        	$action = "index";
+
         	        
         // Set default template as action name
 		$page->setTemplate($action);        
         	
 		$page->executeCurrentAction();		
+		
+		// Stop any existing action
+		throw new SerenityStopException();
+    }
+    
+    public function sendTo($url)
+    {
+    	header('Location: ' . $url);
+    	throw new SerenityStopException();
     }
     
     /**
@@ -399,6 +409,7 @@ class SerenityAppController
     
      public function __call($pluginName, $args)  
      {  
+     	 $pluginName = ucfirst($pluginName);
          // make sure the function exists  
          if(array_key_exists($pluginName, $this->plugins))
          {

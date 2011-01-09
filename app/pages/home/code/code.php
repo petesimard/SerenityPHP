@@ -1,12 +1,13 @@
 <?php
 namespace Serenity;
 
-class HomePage extends SerenityPage
+class HomePage extends SerenityAuthPage
 {
     function index()
     {
-        $user = UserModel::query(21)->orderBy('username desc')->addWhere('id > 5')->fetchOne();
-        $this->testVar = $user['username'];
+        $this->user = UserModel::query(21)->orderBy('username desc')->addWhere('id > 5')->fetchOne();
+        
+        $this->testVar = $this->user['username'];
     }
 
     function index_registerParams()
