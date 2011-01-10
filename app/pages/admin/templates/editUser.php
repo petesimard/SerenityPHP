@@ -1,13 +1,15 @@
 <?php
 namespace Serenity;
 ?>
-<b>Editing user #<?=$user['id']?></b><br>
+<b>Editing user #<?=$user['id']?></b><p>
 <?php
 echo $user->getFormStart();
-echo "<b>Username:</b>";
+echo "<b>Username:</b><br>";
 echo $user->getFormField("username");
-echo "<br><b>email:</b>";
+echo "<p><b>email:</b><br>";
 echo $user->getFormField("email");
+echo "<p><b>Favorite blog post:</b><br>";
+echo $user->getFormField("favoriteBlogPost");
 ?>
 <br><br>
 <input type="submit">

@@ -4,8 +4,8 @@ namespace Serenity;
 <html>
 <head>
 <link rel="stylesheet" href="/css/style.css" type="text/css" />
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script>
-<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
+<script src="/js/jquery.min.js"></script>
+<script src="/js/jquery-ui.min.js"></script>
 </head>
 <body>
 <div id="container">
@@ -17,7 +17,7 @@ namespace Serenity;
     <div id="navigation">
         <ul>
             <li><a href="<?=getPageUrl("home")?>">Home</a></li>
-            <li><a href="#">About</a></li>
+            <li><a href="<?=getPageUrl("admin")?>">Admin</a></li>
             <li><a href="#">Services</a></li>
             <li><a href="#">Contact us</a></li>
             <div align="right"><font color="white"><?php 

@@ -40,9 +40,22 @@ class UserModel extends SerenityModel
         $field->index = "index";
         
         $field = $this->addField("posts");
-        $field->type = "hasMany";
-        $field->foreignTable = "blogPost";
-        $field->foreignKey = "user_id";          
+        $field->type = "form";
+        $field->foreignModel = "blogPost";
+        $field->foreignKey = "user_id";   
+        $field->foreignRelationship = "hasMany";
+
+        $field = $this->addField("favoriteBlogPost");
+        $field->type = "int";
+        $field->foreignModel = "blogPost";
+        $field->foreignRelationship = "hasOne";
+        $field->validator = array("foreignModel" => true, "required" => false);
+
     }
+    
+    public function __toString()
+    {   
+    	return $this['username'];
+    } 
 }
 ?>

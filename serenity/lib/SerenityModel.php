@@ -18,8 +18,10 @@ class SerenityField
     private $value = null;
     public $formError = "";
     public $isDirty = false;
-    public $foreignTable = "";
+    public $foreignModel = "";
     public $foreignKey = "";
+    public $foreignRelationship = "";
+    public $associatedModels = null;
 	public $localKey = "";
     
     /**
@@ -46,17 +48,27 @@ class SerenityField
     
     public function getValue()
     {
-    	if($this->type == "hasOne" || $this->type == "hasMany")
+    	if($this->foreignRelationship == "hasOne" || $this->foreignRelationship == "hasMany")
     	{
-    		return $this->getAssociatedModels();
+    		$assoc =  $this->getAssociatedModels();
+    		return $assoc;
     	}
     	
-    	return $this->__toString();
+    	return $this->value;
     }   
+    
+    /**
+     * Get the raw value of a field, even if it is a relational field
+     * @return mixed
+     */
+    public function getRawValue()
+    {
+    	return $this->value;
+    }
 
     public function isDatabaseField()
     {
-    	if($type == "form" || $type == "hasOne" || $type == "hasMany")
+    	if($this->type == "form")
     		return false;
     	else
     		return true;
@@ -64,22 +76,60 @@ class SerenityField
     
     public function __toString()
     {
-    	return $this->value;
+    	if($this->foreignRelationship == "hasOne")
+    	{
+    		$assoc =  $this->getAssociatedModels();
+    		return $assoc->__toString();
+    	}
+    	
+    	if($this->foreignRelationship == "hasMany")
+    	{
+    		return "Array";
+    	}
+    	
+    	return $this->getValue();
     }
     
     private function getAssociatedModels()
     {
-    	$foreignModel = sp::app()->getModel($this->foreignTable);
+    	$foreignModel = sp::app()->getModel($this->foreignModel);
     	if($foreignModel == null)
-    		throw new SerenityException("Invalid associated model '" . $this->foreignTable . "'");
+    		throw new SerenityException("Invalid associated model '" . $this->foreignModel . "'");
     	
     	$localKey = $this->localKey;
     	if($localKey == "")
-    		$localKeyValue = $this->model->getPrimaryKeyValue();
+    	{
+    		// No local key specified
+    		if($this->isDatabaseField())
+    		{
+    			$localKeyValue = $this->value;
+    			if(!$localKeyValue)
+    				return null;
+    		}
+    		else
+    		{
+    			$localKeyValue = $this->model->getPrimaryKeyValue();	
+    		}
+    		
+    	}
     	else 
     		$localKeyValue = $this->model->getField($localKey)->value;
+    		
+		$foreignKey = $this->foreignKey;
+		if($foreignKey == "")
+			$foreignKey = $foreignModel->getPrimaryKey();
     	
-    	return $foreignModel->query($this->foreignKey . "='" . $localKeyValue . "'")->fetch();
+    	$this->associatedModels = $foreignModel->query()->addWhere($foreignKey . "='" . $localKeyValue . "'")->fetch();
+    	
+    	if($this->foreignRelationship == "hasOne")
+    	{
+    		if(count($this->associatedModels) > 0)
+    		{
+    			$this->associatedModels = $this->associatedModels[0];
+    		}
+    	}
+    	
+    	return $this->associatedModels;
     }
 }
 
@@ -104,7 +154,7 @@ abstract class SerenityModel implements \arrayaccess
     	$className = explode('\\', get_called_class());
         $className = $className[count($className) - 1];
         
-        $tableName = strtolower(substr($className, 0, strlen($className) - 5));
+        $tableName = lcfirst(substr($className, 0, strlen($className) - 5));
         $this->tableName = $tableName;
         
 		$this->init();
@@ -188,7 +238,10 @@ abstract class SerenityModel implements \arrayaccess
     	$fields = $this->getFields();
     	
     	if($fields[$name] == null)
-	    	throw new SerenityException("Undefined field '$name' in class " . get_class($this));
+    	{
+    		return;
+    		//throw new SerenityException("Undefined field '$name' in class " . get_class($this));
+    	}	
 	    	
         $fields[$name]->setValue($value);
     }    
@@ -197,11 +250,17 @@ abstract class SerenityModel implements \arrayaccess
      * Returns the HTML <form> start tag and associated hidden elements
      * @return string
      */
-    public function getFormStart()
+    public function getFormStart($page = "", $actionName = "")
     {
         $currentPage = sp::app()->getCurrentPage();
+        
+        if($page == "")
+        	$page = $currentPage->getPageName(); 
 
-        $action = getPageUrl($currentPage->pageName,  $currentPage->currentAction);
+        if($actionName == "")
+        	$actionName = $currentPage->getCurrentAction(); 
+
+        $action = getPageUrl($page,  $actionName);
 
         $html = "<form method=\"post\" action=\"" . $action . "\">\n";
         $html .= "<input type=\"hidden\" name=\"model_name\" value=\"" . $this->tableName . "\">\n";
@@ -228,18 +287,38 @@ abstract class SerenityModel implements \arrayaccess
         {
             throw new SerenityException("Invalid form field in class " . get_class($this) . ": '" . $fieldName . "'");
         }
+        
+        $formFieldName = $this->tableName . "_" . $fieldName;
 
-        if($field->isPassword)
+        if($field->foreignRelationship == "hasOne")
         {
-            $html = "<input type=\"password\" name=\"" . $this->tableName . "_" . $fieldName . "\" value=\"" . $field->getValue() . "\">\n";
+        	$html = "<select name=\"$formFieldName\">\n";
+        	$foreignModel = sp::app()->getModel($field->foreignModel);
+        	if($foreignModel == null)
+        		throw new SerenityException("Invalid foreign model '" . $field->foreignModel . "'");
+        		
+        	foreach($foreignModel->query()->fetch() as $model)
+        	{
+        		$html .= "<option value=\"" . $model->getPrimaryKeyValue() . "\"";
+        		
+        		if($field->getRawValue() == $model->getPrimaryKeyValue())
+        			$html .= " selected=\"selected\"";
+        		
+        		$html .= ">" . htmlentities($model) . "</option>\n";
+        	}
+        	$html .= "</select>\n";
+        }
+        else if($field->isPassword)
+        {
+            $html = "<input type=\"password\" name=\"$formFieldName\" value=\"" . htmlentities($field->getValue()) . "\">\n";
         }
         else if($field->type == "text" || $field->type == "tinytext" || $field->type == "bigtext"  || $field->type == "mediumtext")
         {
-            $html = "<textarea name=\"" .  $this->tableName . "_" . $fieldName . "\">". $field->getValue() . "<textarea>\n";
+            $html = "<textarea name=\"" .  $this->tableName . "_" . $fieldName . "\">". htmlentities($field->getValue()) . "</textarea>\n";
         }
         else
         {
-            $html = "<input type=\"text\" name=\"" . $this->tableName . "_" . $fieldName . "\" value=\"" . $field->getValue() . "\">\n";
+            $html = "<input type=\"text\" name=\"$formFieldName\" value=\"" . htmlentities($field->getValue()) . "\">\n";
         }
 
         return $html;
@@ -319,7 +398,7 @@ abstract class SerenityModel implements \arrayaccess
                         $validator['type'] = "number";
                 }
 
-                $paramDefinitions[$field->name] = new ParamDefinition($validator, $this);
+                $paramDefinitions[$field->name] = new ParamDefinition($validator, $this, $field);
                 if($validator['name'] != "")
                     $paramDefinitions[$field->name]->name = $validator['name'];
                 else
@@ -380,7 +459,7 @@ abstract class SerenityModel implements \arrayaccess
         {
             if($field->name != $primaryKey && $field->isDatabaseField() && $field->isDirty)
             {
-                $query .= $field->name . "='" . $field->getValue() . "', ";
+                $query .= $field->name . "='" . $field->getRawValue() . "', ";
                 $hasDirtyField = true;
             }
         }       
@@ -414,7 +493,7 @@ abstract class SerenityModel implements \arrayaccess
         	
             if($field->name != $primaryKey && $field->isDatabaseField())
             {
-                $values[] = $field->getValue();
+                $values[] = $field->getRawValue();
                 $query .= "" . $field->name . ", ";
                 
                 $hasDirtyField = true;
@@ -495,11 +574,17 @@ abstract class SerenityModel implements \arrayaccess
 	        {
 	            $query->addWhere($modelInfo->getPrimaryKey() . "='" . mysql_escape_string($where) . "'");
 	        }
-	        else if($where != "")
-	            $query->addWhere($where);
+	        else
+	        	throw new SerenityException("Invalid query parameter: '" . $where . "'. Consider using addWhere()");
         }
         
         return $query;
     }
+    
+    public function __toString()
+    {
+    	return $this->getPrimaryKeyValue();
+    }
+        
 }
 ?>

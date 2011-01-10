@@ -91,7 +91,17 @@ class SerenityAppController
         $name = ucfirst($name);
         return $this->pages[$name . "Page"];
     }
-
+    
+    /**
+     * Returns an array of all loaded pages
+     * @param string $name
+     * @return SerenityPage
+     */
+    function getPages()
+    {
+        return $this->pages;
+    }
+    
     /**
      * Returns a reference model. The fields of this model should not be
      * written to
@@ -102,6 +112,15 @@ class SerenityAppController
     {
         $name = ucfirst($name);
         return $this->models[$name . "Model"];
+    }    
+    /**
+     * Returns an array of all loaded models
+     * @param string $name
+     * @return SerenityModel
+     */
+    function getModels()
+    {
+        return $this->models;
     }
     
     /**
@@ -354,8 +373,7 @@ class SerenityAppController
     {
 		$this->getCurrentPage()->setNotice('error', $errorMessage);
     	
-		$this->route = sp::$router->getErrorPage();
-        $this->redirect($this->route->page, $this->route->action);
+        $this->redirect($this->getCurrentPage()->getErrorPage(), $this->getCurrentPage()->getErrorAction());
     }
     
     /**

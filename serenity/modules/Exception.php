@@ -17,6 +17,11 @@ function exception_handler($exception)
     {
         echo $trace['function'] . "() -- " . $trace[file] . " line " . $trace[line] . "<br>";
     }
+    
+    if(sp::app()->isDebugMode())
+    {
+    	echo sp::app()->getSnippet("debug");
+    }    
 }
 
 

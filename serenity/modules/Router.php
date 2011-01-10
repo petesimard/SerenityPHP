@@ -24,21 +24,6 @@ class SerenityRouter
     private static $mThis = null;
 
     /**
-     * Returns the standard error page route
-     * Error page can be overriden by creating a new page called error
-     * inside the base /pages folder
-     * @return SerenityPageRequest
-     */
-    function getErrorPage()
-    {
-        $pageRequest = new SerenityPageRequest();
-        $pageRequest->action = "error";
-        $pageRequest->page = "";
-
-        return $pageRequest;
-    }
-
-    /**
      * Parse a URL for the route
      * @param string $url
      * @throws SerenityException

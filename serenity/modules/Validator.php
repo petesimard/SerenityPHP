@@ -25,6 +25,11 @@ class ParamDefinition
     public $errorMessage = null;
     public $matchField = null;
     public $defaultValue = null;
+    public $foreignModel = false;
+    
+    public $field = null;
+    public $model = null;
+    
     /**
      * Parses the array of strings passed and creates a ParamDefinition
      * @param array $paramArray
@@ -86,6 +91,9 @@ class ParamDefinition
                 case "errorMessage":
                 	$this->errorMessage = $value;
                 break;
+                case "foreignModel":
+                	$this->foreignModel = ($value) ? true : false;
+                break;
             }
         }
     }
@@ -130,7 +138,7 @@ class ParameterValidator
                     
         $paramName = $paramDefinition->getFriendlyName();
 
-        // Required field
+        // Required field (must be first)
         if($paramDefinition->required == true)
         {
         	if(!$isUpdate || ($isUpdate && $paramDefinition->type != "form"))
@@ -171,7 +179,7 @@ class ParameterValidator
             if($referenceModel == null)
                 throw new SerenityException("Unable to set field '" . $paramName . "' to unique without reference model.");
 
-            $query = $referenceModel->query($paramDefinition->name . "='" . mysql_escape_string($paramValue) . "'");
+            $query = $referenceModel->query()->addWhere($paramDefinition->name . "='" . mysql_escape_string($paramValue) . "'");
             
             if($isUpdate)
             {
@@ -292,6 +300,30 @@ class ParameterValidator
                 }
             }
         }
+        
+		// Check foreign model key
+		if($paramDefinition->foreignModel)
+		{
+			if($paramDefinition->field == null)
+				throw new SerenityException('Error accessing field for foreign model validator');
+			
+			$foreignModel = sp::app()->getModel($paramDefinition->field->foreignModel);
+			if($foreignModel == null)
+				throw new SerenityException("Validator unable to access model'" . $paramDefinition->field->foreignModel . "'");
+			
+			$retModel = $foreignModel->query(mysql_escape_string($paramValue))->fetchOne();
+
+			if($retModel == null)	
+			{
+				if($paramDefinition->errorMessage === null)
+                	$errorMessage = $paramName . " is not a valid entry.";
+                else
+                	$errorMessage = $paramDefinition->errorMessage;
+
+                return $errorMessage;				
+			}
+		}      	
+        	        
 
         return "";
     }

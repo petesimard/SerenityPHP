@@ -5,6 +5,9 @@ function debugSnippet($params)
 {
     ob_start();
     ?>
+	<script src="/js/jquery.min.js"></script>
+	<script src="/js/jquery-ui.min.js"></script>
+    
     <script type="text/javascript">
     var isExpanded = false;
     var shownPage = '';

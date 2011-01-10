@@ -23,6 +23,8 @@ abstract class SerenityPage
     protected $isFormValid = false;
     protected $noticeMessage = "";
     protected $noticeType = "";
+    protected $errorPage = "error";
+    protected $errorAction = "index";
 
     public function __set($name, $value)
     {
@@ -156,7 +158,7 @@ abstract class SerenityPage
 
         foreach($this->formModel->getFields() as $field)
         {
-            $errorMessage = sp::validator()->validate($field->getValue(), $field->paramDefinition, $this->formModel);
+            $errorMessage = sp::validator()->validate($field->getRawValue(), $field->paramDefinition, $this->formModel);
             if($errorMessage != "")
             {
                 $field->formError = $errorMessage;
@@ -285,7 +287,7 @@ abstract class SerenityPage
      */
     public function parseActionParams()
     {
-    	$this->params = array();
+    	$this->paramDefinitions = array();
     	    	
         $methods = get_class_methods($this);
         foreach ($methods as $method_name)
@@ -333,9 +335,18 @@ abstract class SerenityPage
         {
             throw new SerenityException("Missing action: " . get_class($this) . "->" . $actionName . "()");
         }
-    	
+
         $this->currentAction = $actionName;
         $this->parseActionParams();
+    }
+    
+    /**
+     * Get the name of the current action
+     * @return string
+     */
+    public function getCurrentAction()
+    {
+    	return $this->currentAction; 
     }
 
     /**
@@ -406,6 +417,15 @@ abstract class SerenityPage
     public function setPageName($name)
     {
     	$this->pageName = $name;
+    }    
+    
+    /**
+     * Get page name
+     * @param string $name
+     */
+    public function getPageName()
+    {
+    	return $this->pageName;
     }
     
     /**
@@ -416,6 +436,34 @@ abstract class SerenityPage
     {
     	$this->dir = $dir;
     }
+    
+    /**
+     * If the page fails parameter validation, redirect to this URL
+     * @param string $url
+     */
+    public function setErrorUrl($page, $action)
+    {
+    	$this->errorPage = $page;
+    	$this->errorAction = $action;
+    }
+    
+    /**
+     * Get the error Page
+     * @return string
+     */
+    public function getErrorPage()
+    {
+    	return $this->errorPage;
+    }  
+          
+    /**
+     * Get the error Action
+     * @return string
+     */
+    public function getErrorAction()
+    {
+    	return $this->errorAction;
+    }    
     
 }
 ?>
