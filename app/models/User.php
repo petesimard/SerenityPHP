@@ -1,61 +1,26 @@
-<?php
+<?
 namespace Serenity;
 
-class UserModel extends SerenityModel
+class UserModel extends BaseUserModel
 {
     function init()
     {
-        $field = $this->addField("id");
-        $field->type = "int";
-        $field->index = "primary";
-
-        $field = $this->addField("adminLevel");
-        $field->type = "int";
+        $field = $this->getRawField("adminLevel");
         $field->defaultValue = 1;
-        
-        $field = $this->addField("username");
-        $field->type = "varchar";
-        $field->length = "16";
+
+        $field = $this->getRawField("username");
         $field->validator = array("minLen" => 3, "maxLen" => 16, "required" => true, "unique" => true, "friendlyName" => "Username");
-                
-        $field = $this->addField("salt");
-        $field->type = "varchar";
-        $field->length = "32";
-        
-        $field = $this->addField("password");
-        $field->type = "varchar";
-        $field->length = "32";
+
+        $field = $this->getRawField("password");
         $field->isPassword = true;
         $field->validator = array("required" => true, "friendlyName" => "Password");
 
         $field = $this->addField("password_confirm");
         $field->type = "form";
         $field->isPassword = true;
-        $field->validator = array("matchField" => $this->getField('password'), "required" => true, "friendlyName" => "Password Confirm");
+        $field->validator = array("matchField" => 'password', "required" => true, "friendlyName" => "Password Confirm");
 
-        $field = $this->addField("email");
-        $field->type = "varchar";
-        $field->length = "64";
-        $field->validator = array("type" => "email", "required" => true, "unique" => true, "friendlyName" => "Email Address");
-        $field->index = "index";
-        
-        $field = $this->addField("posts");
-        $field->type = "form";
-        $field->foreignModel = "blogPost";
-        $field->foreignKey = "user_id";   
-        $field->foreignRelationship = "hasMany";
-
-        $field = $this->addField("favoriteBlogPost");
-        $field->type = "int";
-        $field->foreignModel = "blogPost";
-        $field->foreignRelationship = "hasOne";
-        $field->validator = array("foreignModel" => true, "required" => false);
-
+        $field = $this->getRawField("email");
+        $field->validator = array("type" => "email", "required" => false, "unique" => true, "friendlyName" => "Email Address");
     }
-    
-    public function __toString()
-    {   
-    	return $this['username'];
-    } 
 }
-?>

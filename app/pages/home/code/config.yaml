@@ -1,0 +1,4 @@
+routes:
+    test:
+        url: (+testInt)
+        action: index

@@ -5,9 +5,11 @@ class HomePage extends SerenityAuthPage
 {
     function index()
     {
-        $this->user = UserModel::query(21)->orderBy('username desc')->addWhere('id > 5')->fetchOne();
+    	// example query
+        $this->user = UserModel::query(21)->orderBy('username DESC')->addWhere('id > 5')->fetchOne();
         
-        $this->testVar = $this->user['username'];
+        // test page parameter
+        $this->testVar = $this->getParam('testInt', 42);
     }
 
     function index_registerParams()
