@@ -43,6 +43,16 @@ class PaginatorPlugin extends SerenityPlugin
 
     }
 
+    /**
+     * Call before requesting the query to initilize the paginator.
+     * 
+     * @param SerenityModel $model The model to be returned
+     * @param string $orderBy The field to order the results
+     * @param int $orderDir 0 == ASC, 1 == DESC
+     * @param int $pageNumber current page number
+     * @param int $resultsPerPage number of results per page
+     * @param int $totalResults number of total rows
+     */
     public function init($model, $orderBy, $orderDir, $pageNumber, $resultsPerPage, $totalResults)
     {
         $this->model = $model;
@@ -60,6 +70,10 @@ class PaginatorPlugin extends SerenityPlugin
             $this->pageNumber = ($this->maxPages - 1);
     }
 
+    /**
+     * Get the SerenityQuery for the current page. Call Paginator->init() first
+     * @return SerenityQuery
+     */
     public function getQuery()
     {
         $model = 'Serenity\\' . $this->model . 'Model';
@@ -83,6 +97,13 @@ class PaginatorPlugin extends SerenityPlugin
         limit($this->pageNumber * $this->resultsPerPage . ', ' . $this->resultsPerPage);
     }
 
+    /**
+     * Returns the html of the table header for the column
+     * @param string $name name of the field
+     * @param string $displayName optional name to be displayed
+     * @param mixed $extraParams additional parameters to be added to the url
+     * @return string
+     */
     public function getTableHeader($name, $displayName = null, $extraParams = array())
     {
         if($name == $this->orderBy)
@@ -121,9 +142,14 @@ class PaginatorPlugin extends SerenityPlugin
         return $html;
     }
 
+    /**
+     * Returns the HTML for the page selector.
+     * @param unknown_type $extraParams
+     * @return string
+     */
     function getPageSelector($extraParams = array())
     {
-        $html = 'Page <b>' . ($this->pageNumber + 1) . '</b> of <b>' . $this->maxPages . '</b> &nbsp;';
+        $html = 'Page <b class="paginator_pageNumber">' . ($this->pageNumber + 1) . '</b> of <b class="paginator_pageNumber">' . $this->maxPages . '</b> &nbsp;';
 
         $sidePageCt = 2;
         $startPage = $this->pageNumber - $sidePageCt;

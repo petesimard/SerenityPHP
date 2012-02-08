@@ -2,6 +2,11 @@
 namespace Serenity;
 
 
+/**
+ * Main class to create a query. Call a fetch method to execute the query
+ * @author Pete
+ *
+ */
 class SerenityQuery
 {
     private $sql = '';
@@ -54,6 +59,10 @@ class SerenityQuery
         return current($modelArray);
     }
 
+    /**
+     * Returns a count(*) of the current query
+     * @return int
+     */
     public function fetchCount()
     {
         $this->buildQuery(true);
@@ -63,12 +72,21 @@ class SerenityQuery
         return $count;
     }
 
+    /**
+     * Perform a manual SQL query
+     * @param string $sql
+     * @param mixed $params
+     */
     public function sql($sql, $params = array())
     {
         $this->sql = $sql;
         $this->params = $params;
     }
 
+    /**
+     * The class of object to be returned
+     * @param unknown_type $class
+     */
     public function setModelClass($class)
     {
         $this->modelClass = $class;
@@ -130,6 +148,10 @@ class SerenityQuery
         return $this;
     }
 
+    /**
+     * Builds the SQL text
+     * @param bool $countOnly perform only a count(*)
+     */
     protected function buildQuery($countOnly = false)
     {
         if($countOnly)

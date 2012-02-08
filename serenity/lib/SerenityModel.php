@@ -41,6 +41,10 @@ class SerenityField
         return $name;
     }
 
+    /**
+     * Returns weather the field has any contents
+     * @return boolean
+     */
     public function isEmpty()
     {
         if(is_array($this->value))
@@ -57,6 +61,10 @@ class SerenityField
         return false;
     }
 
+    /**
+     * Returns a serialzed version of the field if it is an array
+     * @return string
+     */
     public function getSerialized()
     {
         if(!is_array($this->value))
@@ -74,22 +82,35 @@ class SerenityField
         return serialize($values);
     }
 
+    /**
+     * Returns true if the primary key of the model
+     * @return boolean
+     */
     public function isPrimaryKey()
     {
         return ($this->index == "primary" ? true : false);
     }
 
+    /**
+     * Set the value of the field. If the value is differnt, sets the dirty flag
+     * so it will be updated in the next save() call
+     * @param unknown_type $value
+     */
     public function setValue($value)
     {
         $origValue = $this->value;
         $this->value = $value;
 
-        if($origValue != $value)
+        if($origValue !== $value)
         {
             $this->isDirty = true;
         }
     }
 
+    /**
+     * Gets the value of the field
+     * @return Ambiguous
+     */
     public function getValue()
     {
         if($this->isRelationalField())
@@ -115,6 +136,11 @@ class SerenityField
         return $this->value;
     }
 
+    /**
+     * Returns true if the field will be saved to the database
+     * on a save() call
+     * @return boolean
+     */
     public function isDatabaseField()
     {
         if($this->type == "form")
@@ -123,6 +149,10 @@ class SerenityField
             return true;
     }
 
+    /**
+     * Returns true if the field will automaticly have the timestamp set
+     * @return boolean
+     */
     public function isMagicField()
     {
         if($this->name == 'updatedOn' || $this->name == 'createdOn')
@@ -152,6 +182,10 @@ class SerenityField
         return $value;
     }
 
+    /**
+     * Returns true if the field is acutally a pointer to another models field(s)
+     * @return boolean
+     */
     public function isRelationalField()
     {
         if($this->foreignRelationship == 'hasOne' || $this->foreignRelationship == 'hasMany' || $this->foreignRelationship == 'serialized')
@@ -160,6 +194,11 @@ class SerenityField
         return false;
     }
 
+    /**
+     * Returns the associated models
+     * @throws SerenityException
+     * @return mixed
+     */
     private function getAssociatedModels()
     {
         if(!is_null($this->associatedModels))
@@ -214,6 +253,10 @@ class SerenityField
         return $this->associatedModels;
     }
 
+    /**
+     * Returns the associated models based on the serialized values
+     * @return mixed
+     */
     private function getSerializedModels()
     {
         $retModels = array();
@@ -238,6 +281,10 @@ class SerenityField
         return $this->associatedModels;
     }
 
+    /**
+     * Returns the HTML to display the field as hidden
+     * @return string
+     */
     public function getHiddenFormField()
     {
         $formFieldName = $this->model->tableName . "_" . $this->name;
@@ -389,7 +436,7 @@ abstract class SerenityModel implements \arrayaccess
     }
 
 
-    /* (non-PHPdoc)
+    /** (non-PHPdoc)
      * @see ArrayAccess::offsetGet()
      */
     public function offsetGet($offset)
@@ -403,7 +450,7 @@ abstract class SerenityModel implements \arrayaccess
         return $ret;
     }
 
-    /* (non-PHPdoc)
+    /** (non-PHPdoc)
      * @see ArrayAccess::offsetSet()
      */
     public function offsetSet($offset, $value)
@@ -418,7 +465,8 @@ abstract class SerenityModel implements \arrayaccess
             $fields[$offset]->setValue($value);
         }
     }
-    /* (non-PHPdoc)
+    
+    /** (non-PHPdoc)
      * @see ArrayAccess::offsetExists()
      */
     public function offsetExists($offset)
@@ -428,7 +476,7 @@ abstract class SerenityModel implements \arrayaccess
         return isset($fields[$offset]);
     }
 
-    /* (non-PHPdoc)
+    /** (non-PHPdoc)
      * @see ArrayAccess::offsetUnset()
      */
     public function offsetUnset($offset)
@@ -447,8 +495,7 @@ abstract class SerenityModel implements \arrayaccess
 
         if(!isset($fields[$name]))
         {
-            return;
-            //throw new SerenityException("Undefined field '$name' in class " . get_class($this));
+        	throw new SerenityException("Undefined field '$name' in class " . get_class($this));           
         }
 
         $fields[$name]->setValue($value);
