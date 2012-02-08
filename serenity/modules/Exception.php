@@ -15,13 +15,18 @@ function exception_handler($exception)
     <?
     foreach($exception->getTrace() as $trace)
     {
-        echo $trace['function'] . "() -- " . $trace[file] . " line " . $trace[line] . "<br>";
+        if(!isset($trace['file']))
+            $trace['file'] = 'Unknown File';
+        if(!isset($trace['line']))
+            $trace['line'] = 'Unknown Line';
+
+        echo $trace['function'] . "() -- " . $trace['file'] . " line " . $trace['line'] . "<br>";
     }
-    
+
     if(sp::app()->isDebugMode())
     {
     	echo sp::app()->getSnippet("debug");
-    }    
+    }
 }
 
 
@@ -51,7 +56,7 @@ class SerenityStopException extends SerenityException
 {
     public function __construct($message = "", $code = 0, Exception $previous = null) {
         parent::__construct($message, $code, $previous);
-    }	
+    }
 }
 
 

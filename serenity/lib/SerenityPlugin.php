@@ -23,11 +23,15 @@ abstract class SerenityPlugin
      * @param SerenityPage $page
      */
     abstract function onActionEnd($page);
-    
-     /**
-      * Return an array of key => values that will be converted
-      * into local variables for easy use in templates and layouts
-      */
-     abstract function getTemplateVariables();
+
+    /**
+    * Return an array of key => values that will be converted
+    * into local variables for easy use in templates and layouts
+    */
+    abstract function getTemplateVariables();
+
+    abstract function parseAppConfig($config);
+
+    abstract function parsePageConfig($page, $config);
 }
 ?>

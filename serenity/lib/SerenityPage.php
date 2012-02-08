@@ -11,7 +11,7 @@ abstract class SerenityPage
 {
 	// Note: all class vars should be declared private or protected
 	// to ensure there is no collision with use data
-	
+
     protected $data = array();
     protected $templateName = "";
     protected $pageName = "";
@@ -21,21 +21,28 @@ abstract class SerenityPage
     protected $params = array();
     protected $formModel = null;
     protected $isFormValid = false;
-    protected $noticeMessage = "";
-    protected $noticeType = "";
-    protected $errorPage = "error";
-    protected $errorAction = "index";
+    private   $noticeMessage = "";
+    private   $noticeType = "";
+    private   $errorPage = "error";
+    private   $errorAction = "index";
+    private   $pageTitle = '';
+    private   $json = array();
 
     public function __set($name, $value)
     {
         $this->data[$name] = $value;
     }
-    
+
     public function __get($name)
     {
-        return $this->data[$name];
+        return (isset($this->data[$name]) ? $this->data[$name] : null);
     }
-    
+
+    public function getPageVariables()
+    {
+        return $this->data;
+    }
+
     /**
      * Set the template to render after the page action is finished
      * @param string $templateName
@@ -79,6 +86,8 @@ abstract class SerenityPage
      */
     public function bindForm()
     {
+    	$formModel = null;
+
         foreach($this->params as $paramName => $paramValue)
         {
             if($paramName == "model_name")
@@ -88,19 +97,20 @@ abstract class SerenityPage
                     throw new SerenityException("Invalid model passed: " . $paramName);
 
                 $className = get_class($model);
-                $formModel = clone $model;
+                $formModel = $model;
                 break;
             }
         }
 
         if($formModel == null)
             return;
-            
+
         sp::app()->addLogMessage("Bound form to page '" . get_class($formModel) . "'");
-        
+
         // Check for a primary key to see if it's an update or an insert
         $primaryKey = $formModel->getPrimaryKey();
-        $primaryKeyParam = $this->params[$formModel->tableName . "_" . $primaryKey];
+        $primaryKeyField = $formModel->tableName . "_" . $primaryKey;
+        $primaryKeyParam = (isset($this->params[$primaryKeyField]) ? $this->params[$primaryKeyField] : null);
 
         if($primaryKeyParam != null)
         {
@@ -111,7 +121,7 @@ abstract class SerenityPage
 	        	$this->setNotice('error', "Invalid record");
 	        	return;
         	}
-        	
+
         	$formModel->undirtyFields();
         }
 
@@ -120,7 +130,7 @@ abstract class SerenityPage
             if(substr($paramName, 0, strlen($formModel->tableName)+1) == ($formModel->tableName . "_"))
             {
                 $fieldName = substr($paramName, strlen($formModel->tableName)+1);
-                $modelField = $formModel->getField($fieldName);
+                $modelField = $formModel->getRawField($fieldName);
                 if($modelField != null)
                 {
                     $formModel->setField($fieldName, $paramValue);
@@ -180,7 +190,7 @@ abstract class SerenityPage
     	{
     		foreach($this->formModel->getFields() as $field)
     		{
-    			if($field->value != "" && $field->type != "form")
+    			if($field->getRawValue() != "" && $field->type != "form")
     			{
     				if(!in_array($field->name, $limitFields))
     				{
@@ -191,6 +201,7 @@ abstract class SerenityPage
     			}
     		}
     	}
+
         return $this->isFormValid;
     }
 
@@ -214,37 +225,63 @@ abstract class SerenityPage
     {
         return ($_SESSION['noticeMessage'] != "" ? true : false);
     }
-    
+
     /**
      * Returns an array containing the notice information. Will clear
-     * any existing notice message. 
+     * any existing notice message.
      * "message", "type"
      * @return array
      */
     public function getNotice()
     {
-    	$ret = array("message" => $_SESSION['noticeMessage'], "type" => $_SESSION['noticeType']);
-    	$this->setNotice("", "");
+    	if(isset($_SESSION['noticeMessage']))
+    	{
+    		$ret = array('message' => $_SESSION['noticeMessage'], 'type' => $_SESSION['noticeType']);
+    	}
+    	else
+    	{
+    		$ret = array('message' => '', 'type' => '');
+    	}
 
-    	return $ret;        
+    	// Clear the session notice once it's retrieced
+    	$this->setNotice('', '');
+
+    	return $ret;
     }
 
-    /**
-     * Validate GET and POST paremeters passed in the request
-     * Returns an empty string if no errors
-     * @return string
-     */
+    public function parseConfig($config)
+    {
+        if(isset($config['title']) && $config['title'] != "")
+        {
+            $this->setPageTitle($config['title']);
+        }
+
+        // Allow plugins to parse the config
+        foreach(sp::app()->getPlugins() as $plugin)
+            $plugin->parsePageConfig($this, $config);
+    }
+
+    public function setPageTitle($title)
+    {
+        $this->pageTitle = $title;
+    }
+
+    public function getPageTitle()
+    {
+        return $this->pageTitle;
+    }
+
     public function validateParams()
     {
         foreach($this->paramDefinitions as $paramName => $paramDefinition)
         {
-            $paramValue = $this->params[$paramName];
+            $paramValue = (isset($this->params[$paramName]) ? $this->params[$paramName] : null);
 
             $errorMessage = sp::validator()->validate($paramValue, $paramDefinition);
             if($errorMessage != "")
                 return $errorMessage;
         }
-        
+
         return "";
     }
 
@@ -253,16 +290,21 @@ abstract class SerenityPage
      * @param string $name
      * @return multitype:
      */
-    public function getParam($name)
+    public function getParam($name, $default = null)
     {
-        return $this->params[$name];
+        return (isset($this->params[$name]) ? $this->params[$name] : $default);
+    }
+
+    public function getParams()
+    {
+        return $this->params;
     }
 
     /**
      *  Used to add a parameter definition during page setup ([actionname]_registerParams)
-     *  
+     *
      *  Example for Page named "home":
-     *  
+     *
      *  function home_registerParams()
      *  {
      *  	addParam("pageNumber",  array("type" => "string", "minLen" => 2, "maxLen" => 50));
@@ -288,13 +330,13 @@ abstract class SerenityPage
     public function parseActionParams()
     {
     	$this->paramDefinitions = array();
-    	    	
+
         $methods = get_class_methods($this);
         foreach ($methods as $method_name)
         {
         	if(substr($method_name, 0, strlen($this->currentAction)) == $this->currentAction)
         	{
-	            if(substr($method_name, -15) == "_registerParams")
+	            if($method_name == $this->currentAction . "_registerParams")
 	            {
 	                $this->{$method_name}();
 	            }
@@ -309,21 +351,23 @@ abstract class SerenityPage
     {
         $actionName = $this->currentAction;
         sp::app()->addLogMessage("Executing action '" . $actionName . "'");
-        
+
         foreach(sp::app()->getPlugins() as $plugin)
         {
         	$plugin->onActionStart($this);
         }
-                
+
+        onActionStart($this, $actionName);
+
         $this->{$actionName}();
-        
+
 		foreach(sp::app()->getPlugins() as $plugin)
         {
         	$plugin->onActionEnd($this);
         }
-                        
+
     }
-    
+
     /**
      * Set the action to run
      * @param string $actionName
@@ -339,14 +383,14 @@ abstract class SerenityPage
         $this->currentAction = $actionName;
         $this->parseActionParams();
     }
-    
+
     /**
      * Get the name of the current action
      * @return string
      */
     public function getCurrentAction()
     {
-    	return $this->currentAction; 
+    	return $this->currentAction;
     }
 
     /**
@@ -356,20 +400,26 @@ abstract class SerenityPage
     public function render()
     {
     	sp::app()->addLogMessage("Rendering template '" . $this->templateName . "'");
-    	
+
+        // If there is a form bound to this page, check if it's valid or return the errors
         if($this->formModel != null && !$this->isFormValid())
         {
             foreach($this->formModel->getFields() as $field)
             {
+                $fieldName = $field->name;
+
                 if($field->formError != "")
                 {
-                    $fieldName = $field->name;
-                    $formErrors[$fieldName] = "<span class=\"formError\"> *" . $field->formError . "</span>";
+                    $formErrors[$fieldName] = "<span class=\"formError\">" . $field->formError . "</span>";
                 }
+                else
+                    $formErrors[$fieldName] = "";
             }
         }
+        unset($fieldName);
 
-        
+
+        // Alow plugins to inject their template variables
         foreach(sp::app()->getPlugins() as $plugin)
         {
         	foreach($plugin->getTemplateVariables() as $pageVarName=>$pageVarVal)
@@ -378,15 +428,16 @@ abstract class SerenityPage
         	}
         }
 
+        // Set the page data as a regular variable for easy access
         foreach($this->data as $pageVarName=>$pageVarVal)
         {
             $$pageVarName = $pageVarVal;
         }
-        
-		unset($fieldName);        
-        unset($pageVarName);        
-		unset($pageVarVal);        
-        
+
+        unset($pageVarName);
+		unset($pageVarVal);
+
+        // Output buffer the output of the template
         ob_start();
         include $this->dir . "/templates/" . $this->templateName . ".php";
         $body_html = ob_get_contents();
@@ -394,14 +445,14 @@ abstract class SerenityPage
 
         return $body_html;
     }
-    
+
     public function errorIf($condition, $errorMessage = "")
     {
     	if($condition)
     	{
     		sp::app()->redirectToError($errorMessage);
     		throw new SerenityStopException();
-    	}    	
+    	}
     }
 
     public function error($errorMessage = "")
@@ -409,7 +460,7 @@ abstract class SerenityPage
 		sp::app()->redirectToError($errorMessage);
     	throw new SerenityStopException();
     }
-    
+
     /**
      * Set page name
      * @param string $name
@@ -417,8 +468,8 @@ abstract class SerenityPage
     public function setPageName($name)
     {
     	$this->pageName = $name;
-    }    
-    
+    }
+
     /**
      * Get page name
      * @param string $name
@@ -427,7 +478,7 @@ abstract class SerenityPage
     {
     	return $this->pageName;
     }
-    
+
     /**
      * Set the base directory of the page
      * @param string $dir
@@ -436,7 +487,7 @@ abstract class SerenityPage
     {
     	$this->dir = $dir;
     }
-    
+
     /**
      * If the page fails parameter validation, redirect to this URL
      * @param string $url
@@ -446,7 +497,7 @@ abstract class SerenityPage
     	$this->errorPage = $page;
     	$this->errorAction = $action;
     }
-    
+
     /**
      * Get the error Page
      * @return string
@@ -454,8 +505,8 @@ abstract class SerenityPage
     public function getErrorPage()
     {
     	return $this->errorPage;
-    }  
-          
+    }
+
     /**
      * Get the error Action
      * @return string
@@ -463,7 +514,48 @@ abstract class SerenityPage
     public function getErrorAction()
     {
     	return $this->errorAction;
-    }    
-    
+    }
+
+    /**
+     * Redirect to another page/action without causing a browser refresh
+     * Will cause any existing action to exit out
+     *
+     * Example
+     *
+     * $this->redirect("home", "index");
+     *
+     * will change the current page to home and use the index action
+     * @param string $pageName
+     * @param string $action
+     * @param array $params
+     * @throws SerenityException
+     */
+    public function redirect($pageName, $action = "", $params = array())
+    {
+    	sp::app()->redirect($pageName, $action, $params);
+    }
+
+    public function getName()
+    {
+        return $this->pageName;
+    }
+
+    public function json($key, $data)
+    {
+        $this->json[$key] = $data;
+    }
+
+    public function getJSON()
+    {
+        if(sp::app()->isDebugMode())
+        {
+            $json = $this->json;
+            $json['serenity_queries'] = sp::db()->queryLog;
+        }
+        else
+            $json = $this->json;
+
+        return $json;
+    }
 }
 ?>

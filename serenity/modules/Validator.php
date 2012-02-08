@@ -2,7 +2,7 @@
 namespace Serenity;
 
 /**
- * Object containing validation options for a parameter 
+ * Object containing validation options for a parameter
  * @author Pete
  *
  */
@@ -23,13 +23,15 @@ class ParamDefinition
     public $minVal = null;
     public $maxVal = null;
     public $errorMessage = null;
-    public $matchField = null;
+    public $matchField = '';
     public $defaultValue = null;
     public $foreignModel = false;
-    
+    public $arrayKey = null;
+    public $arrayValue = null;
+
     public $field = null;
     public $model = null;
-    
+
     /**
      * Parses the array of strings passed and creates a ParamDefinition
      * @param array $paramArray
@@ -37,11 +39,11 @@ class ParamDefinition
      * @param SerenityField $referenceField
      * @throws SerenityException
      */
-    function ParamDefinition($paramArray, $referenceModel = null, $referenceField = null)
+    function __construct($paramArray, $referenceModel = null, $referenceField = null)
     {
         $this->model = $referenceModel;
         $this->field = $referenceField;
-        
+
         foreach($paramArray as $var=>$value)
         {
             switch($var)
@@ -80,9 +82,6 @@ class ParamDefinition
                     $this->unique = ($value) ? true : false;
                 break;
                 case "matchField":
-                    if($value == null)
-                        throw new SerenityException("Validator unable to locate matchField for " . $this->name);
-
                     $this->matchField = $value;
                 break;
                 case "defaultValue":
@@ -92,7 +91,13 @@ class ParamDefinition
                 	$this->errorMessage = $value;
                 break;
                 case "foreignModel":
-                	$this->foreignModel = ($value) ? true : false;
+                    $this->foreignModel = ($value) ? true : false;
+                break;
+                case "arrayKey":
+                    $this->arrayKey = $value;
+                break;
+                case 'arrayValue':
+                    $this->arrayValue = $value;
                 break;
             }
         }
@@ -130,26 +135,26 @@ class ParameterValidator
     public function validate($paramValue, $paramDefinition, $model = null)
     {
         if($paramDefinition == null)
-            return;
+            return "";
 
         $isUpdate = false;
         if($model && $model->getPrimaryKeyValue() != "")
         	$isUpdate = true;
-                    
+
         $paramName = $paramDefinition->getFriendlyName();
 
         // Required field (must be first)
         if($paramDefinition->required == true)
         {
         	if(!$isUpdate || ($isUpdate && $paramDefinition->type != "form"))
-        	{	
+        	{
 	            if($paramValue == "" || $paramValue == null)
 	            {
 	                if($paramDefinition->errorMessage === null)
 	                    $errorMessage = $paramName . " is a required field.";
 	                else
 	                    $errorMessage = $paramDefinition->errorMessage;
-	
+
 	                return $errorMessage;
 	            }
         	}
@@ -158,13 +163,14 @@ class ParameterValidator
         	return "";
 
         // Compare to another field
-        if($paramDefinition->matchField != null)
+        if($paramDefinition->matchField != '')
         {
-            $matchFieldValue = $paramDefinition->matchField->getValue();
+            $matchField = $model->getRawField($paramDefinition->matchField);
+            $matchFieldValue = $matchField->getValue();
             if($matchFieldValue != $paramValue)
             {
                 if($paramDefinition->errorMessage === null)
-                    $errorMessage = $paramName . " must match " . $paramDefinition->matchField->getFriendlyName() . ".";
+                    $errorMessage = $paramName . " must match " . $matchField->getFriendlyName() . ".";
                 else
                     $errorMessage = $paramDefinition->errorMessage;
 
@@ -180,14 +186,14 @@ class ParameterValidator
                 throw new SerenityException("Unable to set field '" . $paramName . "' to unique without reference model.");
 
             $query = $referenceModel->query()->addWhere($paramDefinition->name . "='" . mysql_escape_string($paramValue) . "'");
-            
+
             if($isUpdate)
             {
             	$query->addWhere($referenceModel->getPrimaryKey() . "<>'" . $referenceModel->getPrimaryKeyValue() . "'");
             }
-           	
+
             $existingModel = $query->fetchOne();
-            
+
             if($existingModel != null)
             {
                 if($paramDefinition->errorMessage === null)
@@ -199,7 +205,7 @@ class ParameterValidator
             }
         }
 
-        // String
+        // Enail
         if($paramDefinition->type == ParamDefinition::TYPE_EMAIL)
         {
             if(!$this->isValidEmailAddress($paramValue))
@@ -261,7 +267,7 @@ class ParameterValidator
         // Integer
         if($paramDefinition->type == ParamDefinition::TYPE_INT)
         {
-            if(preg_match('/^\d*$/', $paramValue) != 1)
+            if(!ctype_int($paramValue))
             {
                 if($paramDefinition->errorMessage === null)
                     $errorMessage = $paramName . " must be an integer.";
@@ -300,30 +306,59 @@ class ParameterValidator
                 }
             }
         }
-        
+
 		// Check foreign model key
 		if($paramDefinition->foreignModel)
 		{
 			if($paramDefinition->field == null)
 				throw new SerenityException('Error accessing field for foreign model validator');
-			
+
 			$foreignModel = sp::app()->getModel($paramDefinition->field->foreignModel);
 			if($foreignModel == null)
 				throw new SerenityException("Validator unable to access model'" . $paramDefinition->field->foreignModel . "'");
-			
+
 			$retModel = $foreignModel->query(mysql_escape_string($paramValue))->fetchOne();
 
-			if($retModel == null)	
+			if($retModel == null)
 			{
 				if($paramDefinition->errorMessage === null)
                 	$errorMessage = $paramName . " is not a valid entry.";
                 else
                 	$errorMessage = $paramDefinition->errorMessage;
 
-                return $errorMessage;				
+                return $errorMessage;
 			}
-		}      	
-        	        
+		}
+
+        // Array Key
+        if($paramDefinition->arrayKey)
+        {
+            if(!array_key_exists($paramValue, $paramDefinition->arrayKey))
+            {
+                if($paramDefinition->errorMessage === null)
+                    $errorMessage = $paramName . " is not a valid entry.";
+                else
+                    $errorMessage = $paramDefinition->errorMessage;
+
+                return $errorMessage;
+            }
+        }
+
+        // Array Value
+        if($paramDefinition->arrayValue)
+        {
+            if(!in_array($paramValue, $paramDefinition->arrayValue))
+            {
+                if($paramDefinition->errorMessage === null)
+                    $errorMessage = $paramName . " is not a valid entry.";
+                else
+                    $errorMessage = $paramDefinition->errorMessage;
+
+                return $errorMessage;
+            }
+        }
+
+
 
         return "";
     }
@@ -334,7 +369,7 @@ class ParameterValidator
      * @param string $email
      * @return boolean
      */
-    function isValidEmailAddress($email)
+    static function isValidEmailAddress($email)
     {
 
         $no_ws_ctl = "[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]";
@@ -393,7 +428,7 @@ class ParameterValidator
 
         if (strlen($email) > 256) return 0;
 
-        $email = $this->rfc3696_strip_comments($outer_comment, $email, "(x)");
+        $email = self::rfc3696_strip_comments($outer_comment, $email, "(x)");
 
 
         if (!preg_match("!^$addr_spec$!", $email, $m)){
@@ -412,8 +447,8 @@ class ParameterValidator
          'domain-obs'  => isset($m[8]) ? $m[8] : '',
         );
 
-        $bits['local'] = $this->rfc3696_strip_comments($comment, $bits['local']);
-        $bits['domain'] = $this->rfc3696_strip_comments($comment, $bits['domain']);
+        $bits['local'] = self::rfc3696_strip_comments($comment, $bits['local']);
+        $bits['domain'] = self::rfc3696_strip_comments($comment, $bits['domain']);
 
 
         if (strlen($bits['local']) > 64) return 0;
@@ -503,7 +538,7 @@ class ParameterValidator
         return 1;
     }
 
-    function rfc3696_strip_comments($comment, $email, $replace=''){
+    static function rfc3696_strip_comments($comment, $email, $replace=''){
 
         while (1){
             $new = preg_replace("!$comment!", $replace, $email);

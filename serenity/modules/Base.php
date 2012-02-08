@@ -10,24 +10,28 @@ namespace Serenity;
 class sp
 {
     public static $baseDir = "";
+    public static $baseAppDir = "";
     public static $router = null;
     public static $currentApp = null;
     public static $dababase = null;
     public static $parameterValidator = null;
+    private static $yamlParser;
 
     /**
      * Setup initial framework properties
      */
-    public function init()
+    public static function init($serenity_base_app_dir)
     {
         self::$baseDir = realpath(dirname(__FILE__).'/../..');
+        self::$baseAppDir = $serenity_base_app_dir;
+        self::$yamlParser = new \sfYamlParser();
     }
 
     /**
      * Returns the current application controller
      * @return SerenityAppController
      */
-    public function app()
+    public static function app()
     {
         return self::$currentApp;
     }
@@ -36,30 +40,35 @@ class sp
      * Returns the current database controller
      * @return SerenityDatabase
      */
-    public function db()
+    public static function db()
     {
         return self::$dababase;
     }
-    
+
     /**
      * Returns the current parameter validator
      * @return ParameterValidator
      */
-    public function validator()
+    public static function validator()
     {
         return self::$parameterValidator;
     }
-    
+
     /**
      * Returns the current route controller
      * @return SerenityRouter
      */
-    public function router()
+    public static function router()
     {
-    	return self::$router;
+        return self::$router;
+    }
+
+    public static function yaml()
+    {
+        return self::$yamlParser;
     }
 }
 
 // Start initilization
-sp::init();
+sp::init($serenity_base_app_dir);
 ?>
