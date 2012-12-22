@@ -93,7 +93,10 @@ class SerenityAppController
 	function getPage($name)
 	{
 		$name = ucfirst($name);
-		return $this->pages[$name . "Page"];
+        if(isset($this->pages[$name . "Page"]))
+		    return $this->pages[$name . "Page"];
+        else
+            return null;
 	}
 
 	/**
@@ -143,9 +146,9 @@ class SerenityAppController
 	 */
 	function loadPlugin($pluginName, $params)
 	{
-		$pluginName = ucfirst($pluginName);
+		$pluginName = $pluginName;
 
-		$className = $pluginName . "Plugin";
+		$className = ucfirst($pluginName) . "Plugin";
 		$fqClassName = __NAMESPACE__ . "\\" . $className;
 
 		$pluginFile = sp::$baseAppDir .  self::APP_DIRECTORY . "/" . self::PLUGIN_DIRECTORY . "/" . $pluginName . "/" . $pluginName . ".php";
@@ -160,9 +163,9 @@ class SerenityAppController
 		if(!class_exists($fqClassName))
 			throw new SerenityException("Missing Plugin Class '" . $className . "'");
 
-		$this->plugins[$pluginName] = new $fqClassName();
+		$this->plugins[ucfirst($pluginName)] = new $fqClassName();
 
-		call_user_func(array($this->plugins[$pluginName], 'onAppLoad'), $params);
+		call_user_func(array($this->plugins[ucfirst($pluginName)], 'onAppLoad'), $params);
 	}
 
 	/**
@@ -352,7 +355,7 @@ class SerenityAppController
 
 	/**
 	 * Return the current route
-	 * @return Ambiguous
+	 * @return SerenityPageRequest
 	 */
 	function getRoute()
 	{
@@ -433,7 +436,7 @@ class SerenityAppController
 	{
         if($this->route->isAjax)
         {
-            $json = array('error', $errorMessage);
+            $json = array('error' => $errorMessage);
             echo json_encode($json);
             exit;
         }
@@ -452,6 +455,7 @@ class SerenityAppController
 		$this->addLogMessage("App start");
 		$uri = $_SERVER['REQUEST_URI'];
 		$this->route = sp::router()->parseUrl($uri);
+        $body_html = "";
 
 		try
 		{
@@ -470,11 +474,14 @@ class SerenityAppController
         else
         {
             // Render template
-		    $body_html = $this->getCurrentPage()->render();
+            if(!$this->getCurrentPage()->isNoTempltes())
+		        $body_html = $this->getCurrentPage()->render();
+            else if($this->getCurrentPage()->jsonCount() > 0)
+                $body_html = json_encode($this->getCurrentPage()->getJSON());
         }
 
 		// Render the layout with the included body_html
-		if(!$this->route->isAjax && !$this->noLayout)
+		if(!$this->route->isAjax && !$this->noLayout && !$this->getCurrentPage()->isNoLayout())
 		{
 			$this->renderLayout($body_html);
 

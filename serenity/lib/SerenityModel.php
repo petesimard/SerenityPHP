@@ -15,19 +15,23 @@ class SerenityField
     public $validator = null;
     public $model = null;
     public $paramDefinition = null;
-    private $value = null;
     public $formError = "";
     public $isDirty = false;
     public $foreignModel = '';
     public $foreignKey = '';
     public $joinModel = '';
+    public $enableCache = false;
     public $foreignRelationship = '';
     public $associatedModels = null;
     public $localKey = '';
     public $timestampFormat = 'M jS g:i a';
     public $foreignOrder = '';
+    public $unsigned = false;
     public $autoSerialize = false;
 
+    private $value = null;
+    private static $modelCache = array();
+    
     /**
      * Returns the fiendly name of the field if set in the validator. If none returns the raw database field name.
      * @return string
@@ -113,6 +117,7 @@ class SerenityField
      */
     public function getValue()
     {
+  
         if($this->isRelationalField())
         {
             $assoc = $this->getAssociatedModels();
@@ -235,7 +240,7 @@ class SerenityField
         $foreignKey = $this->foreignKey;
         if($foreignKey == "")
             $foreignKey = $foreignModel->getPrimaryKey();
-
+            
         $this->associatedModels = $foreignModel->query()->addWhere($foreignKey . "='" . $localKeyValue . "'");
 
         if($this->foreignOrder != "")
@@ -245,7 +250,23 @@ class SerenityField
 
         if($this->foreignRelationship == 'hasOne')
         {
+            if($this->enableCache)
+            {
+                $cachedModel = $this->getCachedModel($localKeyValue);
+                
+                if($cachedModel != null)
+                {
+                    $this->associatedModels = $cachedModel;
+                    return $cachedModel;
+                }
+            }
+                        
             $this->associatedModels = $this->associatedModels->fetchOne();
+            
+            if($this->enableCache)
+            {
+                $this->storeCachedModel($localKeyValue, $this->associatedModels);
+            }            
         }
         else
             $this->associatedModels = $this->associatedModels->fetchAll();
@@ -279,6 +300,26 @@ class SerenityField
 
         $this->associatedModels = $retModels;
         return $this->associatedModels;
+    }
+    
+    /**
+    * Get the cached model if available
+    * Returns null if not cached yet
+    */
+    private function getCachedModel($key)
+    {
+        if(isset(SerenityField::$modelCache[$this->model->tableName][$key]))
+            return SerenityField::$modelCache[$this->model->tableName][$key];
+
+        return null;
+    }
+    
+    /**
+    * Store the model in the cache for later use
+    */
+    private function storeCachedModel($key, $model)
+    {
+        SerenityField::$modelCache[$this->model->tableName][$key] = $model;
     }
 
     /**
@@ -440,7 +481,7 @@ abstract class SerenityModel implements \arrayaccess
      * @see ArrayAccess::offsetGet()
      */
     public function offsetGet($offset)
-    {
+    {       
         $fields = $this->getFields();
         $ret = isset($fields[$offset]) ? $fields[$offset]->getValue() : null;
 
@@ -449,6 +490,17 @@ abstract class SerenityModel implements \arrayaccess
 
         return $ret;
     }
+    
+    function __get($offset)
+    {
+        $fields = $this->getFields();
+        $ret = isset($fields[$offset]) ? $fields[$offset]->getValue() : null;
+
+        if(is_string($ret))
+            $ret = htmlentities($ret);
+
+        return $ret;
+    }    
 
     /** (non-PHPdoc)
      * @see ArrayAccess::offsetSet()
@@ -457,15 +509,19 @@ abstract class SerenityModel implements \arrayaccess
     {
         $fields = $this->getFields();
 
-        if (is_null($offset)) {
+        if (is_null($offset))
+        {
             throw new SerenityException("Cannot set field value without a field name");
-        } else if(!isset($fields[$offset])) {
-            throw new SerenityException("Field '$offset' does not exist in model '" . $this->tableName . "'");
-        } else {
-            $fields[$offset]->setValue($value);
         }
+        else if(!isset($fields[$offset]))
+        {
+            //throw new SerenityException("Field '$offset' does not exist in model '" . $this->tableName . "'");
+            $this->addField($offset);
+        }
+
+        $fields[$offset]->setValue($value);
     }
-    
+
     /** (non-PHPdoc)
      * @see ArrayAccess::offsetExists()
      */
@@ -495,7 +551,7 @@ abstract class SerenityModel implements \arrayaccess
 
         if(!isset($fields[$name]))
         {
-        	throw new SerenityException("Undefined field '$name' in class " . get_class($this));           
+        	throw new SerenityException("Undefined field '$name' in class " . get_class($this));
         }
 
         $fields[$name]->setValue($value);
@@ -680,6 +736,7 @@ abstract class SerenityModel implements \arrayaccess
         {
             $newId = $this->insertNew();
             $this->undirtyFields();
+            $this->onInserted();
             return $newId;
         }
         else
@@ -726,7 +783,7 @@ abstract class SerenityModel implements \arrayaccess
                 if($field->autoSerialize)
                     $value = $field->getSerialized();
 
-                if($field->name == "updatedOn")
+                if($field->name == "updatedOn" || $value === "UNIX_TIMESTAMP()")
                     $query .= $field->name . "=UNIX_TIMESTAMP(), ";
                 else
                 {
@@ -755,6 +812,10 @@ abstract class SerenityModel implements \arrayaccess
 
         return $stmt->rowCount();
     }
+    
+    public function onInserted()
+    {
+    }
 
     /**
      * Called from save() to insert a new row
@@ -771,18 +832,20 @@ abstract class SerenityModel implements \arrayaccess
             if(isset($field->defaultValue) && strlen($field->getRawValue()) == 0)
                 $field->setValue($field->defaultValue);
 
+                
             if($field->name != $primaryKey && $field->isDatabaseField() && !$field->isEmpty() || $field->name == "createdOn" || $field->name == "updatedOn")
             {
-                if($field->name == "createdOn" || $field->name == "updatedOn")
+                if($field->autoSerialize)
+                    $value = $field->getSerialized();
+                else                
+                    $value = $field->getRawValue();
+
+                if($field->name == "createdOn" || $field->name == "updatedOn"  || strcasecmp($value, "UNIX_TIMESTAMP()") == 0)
                 {
                     $values[] = "UNIX_TIMESTAMP()";
                 }
                 else
                 {
-                    $value = $field->getRawValue();
-
-                    if($field->autoSerialize)
-                        $value = $field->getSerialized();
 
                     if(is_array($value))
                         throw new SerenityException('Attempting to save an array as a value on field \'' . $field->name . '\' on model \'' . $this->modelName . '\'. Try setting the field to autoSerialize = true');
@@ -806,6 +869,7 @@ abstract class SerenityModel implements \arrayaccess
         {
             $query .= $value . ", ";
         }
+
 
         // Strip last comma
         $query = substr($query, 0, strlen($query) - 2);
@@ -851,7 +915,7 @@ abstract class SerenityModel implements \arrayaccess
      * @param string $primaryKeyValue
      * @return SerenityQuery
      */
-    static function query($primaryKeyValue = "")
+    static function query($primaryKeyValue = null)
     {
         $query = new SerenityQuery();
 
@@ -868,7 +932,7 @@ abstract class SerenityModel implements \arrayaccess
         $query->addFrom($tableName);
         $query->setModelClass($fqClassName);
 
-        if($primaryKeyValue != "")
+        if(!is_null($primaryKeyValue))
         {
             if(is_numeric($primaryKeyValue))
             {

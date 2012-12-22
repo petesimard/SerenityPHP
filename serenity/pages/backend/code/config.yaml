@@ -1,3 +1,4 @@
+noLayout: true
 auth:
   global: -1
   actions:

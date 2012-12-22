@@ -17,8 +17,9 @@ class AuthPlugin extends SerenityPlugin
 	protected $accessLevelField;
 	protected $passwordHash = "sha1";
 	protected $siteSalt = "SerenitySalt2011";
-	protected $authErrorPage = "error";
+    protected $authErrorUrl = "/error";
     protected $appAccessLevel = -1;
+    protected $authFailUrl = "";
 
 	/**
 	 * Setup initial plugin parameters
@@ -40,8 +41,8 @@ class AuthPlugin extends SerenityPlugin
 		if(isset($params['siteSalt']))
 			$this->siteSalt = $params['siteSalt'];
 
-		if(isset($params['authErrorPage']))
-			$this->authErrorPage = $params['authErrorPage'];
+		if(isset($params['authErrorUrl']))
+			$this->authErrorUrl = $params['authErrorUrl'];
 
 		if(isset($_SESSION['Auth_UserId']) && $_SESSION['Auth_UserId'] != "")
 		{
@@ -273,8 +274,8 @@ class AuthPlugin extends SerenityPlugin
 	 */
 	public function onFailedAccessLevel()
 	{
-		sp::app()->getCurrentPage()->setNotice('error', 'You are not authorized to view this page.');
-		sp::app()->redirect($this->authErrorPage);
+		sp::app()->getCurrentPage()->setNotice('error', 'You must be logged in to access this page.');
+		sendTo($this->authErrorUrl);
 	}
 }
 ?>

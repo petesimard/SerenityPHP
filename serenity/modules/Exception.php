@@ -7,25 +7,30 @@ namespace Serenity;
  */
 function exception_handler($exception)
 {
-    ?>
-    <b>Exception:</b> <?=$exception->getMessage()?>
-    <br>
-    <b>In file:</b> <?=$exception->getFile()?> Line <?=$exception->getLine()?><br>
-    <b>Stack Trace:</b><br>
-    <?
-    foreach($exception->getTrace() as $trace)
-    {
-        if(!isset($trace['file']))
-            $trace['file'] = 'Unknown File';
-        if(!isset($trace['line']))
-            $trace['line'] = 'Unknown Line';
-
-        echo $trace['function'] . "() -- " . $trace['file'] . " line " . $trace['line'] . "<br>";
-    }
-
     if(sp::app()->isDebugMode())
     {
-    	echo sp::app()->getSnippet("debug");
+        ?>
+        <b>Exception:</b> <?=$exception->getMessage()?>
+        <br>
+        <b>In file:</b> <?=$exception->getFile()?> Line <?=$exception->getLine()?><br>
+        <b>Stack Trace:</b><br>
+        <?
+        foreach($exception->getTrace() as $trace)
+        {
+            if(!isset($trace['file']))
+                $trace['file'] = 'Unknown File';
+            if(!isset($trace['line']))
+                $trace['line'] = 'Unknown Line';
+
+            echo $trace['function'] . "() -- " . $trace['file'] . " line " . $trace['line'] . "<br>";
+        }
+
+        if(!is_null(sp::app()->getRoute()) && !sp::app()->getRoute()->isAjax)
+    	    echo sp::app()->getSnippet("debug");
+    }
+    else 
+    {
+        echo '<h2>Internal error</h2>';
     }
 }
 
@@ -63,3 +68,4 @@ class SerenityStopException extends SerenityException
 
 // Register the exception handler
 set_exception_handler('Serenity\exception_handler');
+?>

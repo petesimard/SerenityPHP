@@ -27,6 +27,8 @@ abstract class SerenityPage
     private   $errorAction = "index";
     private   $pageTitle = '';
     private   $json = array();
+    private   $noTemplates = false;
+    private   $noLayout = false;
 
     public function __set($name, $value)
     {
@@ -256,9 +258,39 @@ abstract class SerenityPage
             $this->setPageTitle($config['title']);
         }
 
+        if(isset($config['noTemplates']) && $config['noTemplates'] == "true")
+        {
+            $this->noTemplates = true;
+        }
+        
+        if(isset($config['noLayout']) && $config['noLayout'] == "true")
+        {
+            $this->noLayout = true;
+        }        
+
         // Allow plugins to parse the config
         foreach(sp::app()->getPlugins() as $plugin)
             $plugin->parsePageConfig($this, $config);
+    }
+
+    public function setNoTempltes($bool)
+    {
+        $this->noTemplates = $bool;
+    }
+
+    public function isNoTempltes()
+    {
+        return $this->noTemplates;
+    }
+    
+    public function setNoLayout($bool)
+    {
+        $this->noLayout = $bool;
+    }
+
+    public function isNoLayout()
+    {
+        return $this->noLayout;
     }
 
     public function setPageTitle($title)
@@ -543,6 +575,11 @@ abstract class SerenityPage
     public function json($key, $data)
     {
         $this->json[$key] = $data;
+    }
+    
+    public function jsonCount()
+    {
+        return count($this->json);
     }
 
     public function getJSON()

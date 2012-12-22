@@ -32,7 +32,7 @@ class BackendPage extends SerenityBackendPage
                 $modelName = substr($modelName, 0, $ucPos) . ucfirst(substr($modelName, ($ucPos+1), (strlen($modelName) - $ucPos - 1)));
             }
 
-			$baseDir = sp::$baseDir . SerenityAppController::APP_DIRECTORY . "/" . SerenityAppController::MODEL_DIRECTORY;
+			$baseDir = sp::$baseAppDir . SerenityAppController::APP_DIRECTORY . "/" . SerenityAppController::MODEL_DIRECTORY;
 			$fields = array();
 
 			$fileString = "<?
@@ -54,8 +54,15 @@ abstract class Base" . ucfirst($modelName) . "Model extends SerenityModel
 				$sizeStart = strpos($column['Type'], '(');
 				if($sizeStart !== false)
 				{
+                    if(substr($column['Type'], -8) == "unsigned")
+                    {
+                        $column['Type'] = substr($column['Type'], 0, strlen($column['Type']) - 9);
+                        $fields[$column['Field']]['unsigned'] = true;
+                    }
+                    
 					$fields[$column['Field']]['type'] = substr($column['Type'], 0, $sizeStart);
 					$fields[$column['Field']]['size'] = substr($column['Type'], ($sizeStart + 1), -1);
+                    echo $fields[$column['Field']]['size'];
 				}
 
 				if($column['Key'] == 'PRI')
@@ -79,8 +86,11 @@ abstract class Base" . ucfirst($modelName) . "Model extends SerenityModel
 				if(isset($field['size']))
 					$fileString .= '		$field->size = ' . $field['size'] . ';' . "\n";
 
-				if(isset($field['index']))
-					$fileString .= '		$field->index = "' . $field['index'] . '";' . "\n";
+                if(isset($field['index']))
+                    $fileString .= '        $field->index = "' . $field['index'] . '";' . "\n";
+                
+                if(isset($field['unsigned']) && $field['unsigned'] == true)
+                    $fileString .= '        $field->unsigned = true;' . "\n";
 			}
 
 
@@ -177,7 +187,7 @@ class " . ucfirst($modelName) . "Model extends Base" . ucfirst($modelName) . "Mo
 	{
 		$this->setTemplate('index');
 
-		$basePageDir = sp::$baseDir . SerenityAppController::APP_DIRECTORY . "/" . SerenityAppController::PAGE_DIRECTORY;
+		$basePageDir = sp::$baseAppDir . SerenityAppController::APP_DIRECTORY . "/" . SerenityAppController::PAGE_DIRECTORY;
 
 		$pageName = $this->getParam('pageName');
 		if($this->getParam('pageModel') != "0")

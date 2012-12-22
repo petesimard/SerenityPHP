@@ -13,6 +13,12 @@ class SerenityPageRequest
     public $params = array();
     public $context = null;
     public $isAjax = false;
+    public $url = '';
+    
+    public function getUrl()
+    {
+        return $this->url;
+    }
 }
 
 /**
@@ -44,10 +50,14 @@ class SerenityRouter
             return $url;
 
         if(count($pageRoutes) == 0)
-            return $url
-            ;
+            return $url;
+            
         $matchedRoute = null;
-        $actionName = $urlArray[2];
+        
+        if(count($urlArray) > 2)
+            $actionName = $urlArray[2];
+        else
+            $actionName = '';
 
         $paramName = '';
         $paramsOriginal = array();
@@ -151,7 +161,7 @@ class SerenityRouter
 
         $matchedRoute = null;
 
-        foreach($pageRoutes as $routeInfo)
+        foreach($pageRoutes as $routeName => $routeInfo)
         {
             $urlComponentIdx = 2;
             $params = array();
@@ -189,9 +199,33 @@ class SerenityRouter
                 $urlComponentIdx++;
             }
 
-            if($matchError == false && !isset($urlArray[$urlComponentIdx]))
+            // Route was matched
+            if($matchError == false)
             {
+                if(isset($urlArray[$urlComponentIdx]))
+                {
+                    // There is more to the route.. assume it's extra params
+                    $paramName = '';                    
+                    for($x=$urlComponentIdx; $x<count($urlArray); $x++)
+                    {
+                        $urlComponent = $urlArray[$x];
+                        if($urlComponent == "")
+                            continue;
+
+                        if($paramName == "")
+                        {
+                            $paramName = $urlComponent;
+                            continue;
+                        }
+
+
+                        $params[$paramName] = str_replace(array('%2F','%5C'), array('/','\\'), urldecode($urlComponent));                    
+                        $paramName = "";        
+                    }            
+                }
+                
                 $matchedRoute = $routeInfo;
+                $matchedRouteName = $routeName;
                 break;
             }
         }
@@ -207,13 +241,20 @@ class SerenityRouter
             $pageRequest->action = $matchedRoute['action'];
             $pageRequest->page = $pageName;
             $pageRequest->params = $params;
+            $pageRequest->url = $url;
+            
+            sp::app()->addLogMessage('Matched Route: ' . $matchedRouteName . ' on Page: ' . $pageName);
 
             return $pageRequest;
         }
 
+        // Failed to match a route
         return null;
     }
 
+    /**
+    *  If no user specified route was matched, create a genaric route with the URL components
+    */
     function getDefaultRoute($url)
     {
         $params = array();
@@ -259,12 +300,21 @@ class SerenityRouter
         $page = sp::app()->getPage($pageName);
 
         if($page == null)
-            throw new SerenityException("Page '" . $pageName . "' not found");
+        {
+            // Didn't match a route, try matching a route of the default page
+           // $homeUrl = '/home' . $url;
+//            $pageRequest = $this->matchRoute($homeUrl);
+//            if(!is_null($pageRequest))         
+//                return $pageRequest;
+            
+            throw new SerenityException("Page '" . $pageName . "' not found");        
+        }
 
         $pageRequest = new SerenityPageRequest();
         $pageRequest->action = $actionName;
         $pageRequest->page = $pageName;
         $pageRequest->params = $params;
+        $pageRequest->url = $url;
 
         return $pageRequest;
     }
@@ -285,7 +335,13 @@ class SerenityRouter
         // Check if the URL matches a page route
         $pageRequest = $this->matchRoute($url);
         if(is_null($pageRequest))
-            $pageRequest = $this->getDefaultRoute($url);
+        {
+            if(is_null($pageRequest))
+            {
+                // No routes matched, use default
+                $pageRequest = $this->getDefaultRoute($url);
+            }
+        }
 
         // Register the POST vars
         foreach($_POST as $postVarName=>$postVarVal)
@@ -318,13 +374,13 @@ class SerenityRouter
         if(!isset($config['routes']) || is_null($config['routes']))
             return;
 
-        foreach($config['routes'] as $routeInfo)
+        foreach($config['routes'] as $routeName => $routeInfo)
         {
             if($routeInfo['url'] != '' && $routeInfo['action'] != '')
             {
                 $urlPieces = explode('/', $routeInfo['url']);
                 $route = array('action' => $routeInfo['action'], 'url' => $urlPieces);
-                $this->pageRoutes[$page->getName()][] = $route;
+                $this->pageRoutes[$page->getName()][$routeName] = $route;
             }
         }
     }

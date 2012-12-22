@@ -91,7 +91,7 @@ class ParamDefinition
                 	$this->errorMessage = $value;
                 break;
                 case "foreignModel":
-                    $this->foreignModel = ($value) ? true : false;
+                    $this->foreignModel = $value;
                 break;
                 case "arrayKey":
                     $this->arrayKey = $value;
@@ -310,14 +310,14 @@ class ParameterValidator
 		// Check foreign model key
 		if($paramDefinition->foreignModel)
 		{
-			if($paramDefinition->field == null)
-				throw new SerenityException('Error accessing field for foreign model validator');
+			//if($paramDefinition->field == null)
+			//	throw new SerenityException('Error accessing field for foreign model validator');
 
-			$foreignModel = sp::app()->getModel($paramDefinition->field->foreignModel);
+			$foreignModel = sp::app()->getModel($paramDefinition->foreignModel);
 			if($foreignModel == null)
-				throw new SerenityException("Validator unable to access model'" . $paramDefinition->field->foreignModel . "'");
+				throw new SerenityException("Validator unable to access model '" . $paramDefinition->foreignModel . "'");
 
-			$retModel = $foreignModel->query(mysql_escape_string($paramValue))->fetchOne();
+			$retModel = $foreignModel->query($paramValue)->fetchOne();
 
 			if($retModel == null)
 			{

@@ -17,12 +17,19 @@ namespace Serenity;
         return preg_match('/^-?[0-9]+$/', (string)$text) ? true : false;
     }
 
+    /**
+    * Header redirect. Changed the browser URL
+    */
 	function sendTo($url)
 	{
 		header('Location: ' . $url);
 	    exit;
 	}
 
+    function gpu($page, $action = "", $params = array())
+    {
+        return getPageUrl($page, $action, $params);
+    }
 
 	/**
      * Returns the URL of a page/action with no surrounding HTML
